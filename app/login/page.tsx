@@ -9,6 +9,8 @@ import FaceVerification from "@/components/face-recognition/face-verification"
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
+import { useAuth } from '@/context/AuthContext'
+import { useRouter } from "next/navigation"
 
 export default function LoginPage() {
   const [step, setStep] = useState(1)
@@ -17,24 +19,20 @@ export default function LoginPage() {
   const [verificationComplete, setVerificationComplete] = useState(false)
   const [loginSuccess, setLoginSuccess] = useState(false)
   const [loginError, setLoginError] = useState<string | null>(null)
-  const [userFaceDescriptor, setUserFaceDescriptor] = useState<Float32Array | null>(null)
+  const [capturedFaceDescriptor, setCapturedFaceDescriptor] = useState<Float32Array | null>(null)
+
+  const { login } = useAuth();
+  const router = useRouter();
 
   const handleNextStep = async () => {
     setIsVerifying(true)
     setLoginError(null)
 
     try {
-      // Here you would verify the student ID and fetch the user's face descriptor
-      // For now, we'll simulate this with a timeout
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      
-      // Simulate fetching user data
-      const mockUserData = {
-        studentId,
-        faceDescriptor: new Float32Array(128).fill(0.5), // Mock face descriptor
-      }
-      
-      setUserFaceDescriptor(mockUserData.faceDescriptor)
+      // In a real app, you might still verify student ID here if needed
+      // but face verification will be the primary method.
+
+      // Once student ID is entered, proceed to step 2 for face verification
       setIsVerifying(false)
       setStep(2)
     } catch (error) {
@@ -43,28 +41,63 @@ export default function LoginPage() {
     }
   }
 
-  const handleFaceVerificationComplete = async () => {
-    setVerificationComplete(true)
-    setLoginError(null)
+  const handleFaceCaptured = (descriptor: Float32Array) => {
+    setCapturedFaceDescriptor(descriptor);
+    // Optionally, trigger verification immediately after capture
+    verifyCapturedFace(descriptor);
+  };
+
+  const verifyCapturedFace = async (descriptor: Float32Array) => {
+    setVerificationComplete(true); // Indicate verification process is starting
+    setLoginError(null);
+    setIsVerifying(true);
+
+    if (!studentId) {
+      setLoginError("Student ID is required for verification.");
+      setVerificationComplete(false);
+      setIsVerifying(false);
+      return;
+    }
 
     try {
-      // Here you would verify the face descriptor with the stored one
-      // For now, we'll simulate this with a timeout
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      
-      setLoginSuccess(true)
+      const response = await fetch('/api/verify-face', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          studentId: studentId,
+          faceDescriptor: Array.from(descriptor), // Send the captured descriptor
+        }),
+      });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Verification failed');
+      }
+
+      const result = await response.json();
+      console.log('Verification successful:', result);
+
+      // Use the updated login function to include the role
+      login(result.studentId, result.role);
+
+      setLoginSuccess(true);
       // Redirect to dashboard after successful login
       setTimeout(() => {
-        window.location.href = "/dashboard"
-      }, 1500)
-    } catch (error) {
-      setLoginError("Face verification failed. Please try again.")
-      setVerificationComplete(false)
-    }
-  }
+        router.push('/dashboard');
+      }, 1500);
 
-  const handleFaceVerificationError = (error: string) => {
+    } catch (error: any) {
+      setLoginError(error.message || "Face verification failed. Please try again.");
+      setVerificationComplete(false);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  // Placeholder for the function called by FaceVerification on its internal failure (e.g., camera error)
+  const handleFaceVerificationComponentError = (error: string) => {
     setLoginError(error)
     setVerificationComplete(false)
   }
@@ -137,7 +170,7 @@ export default function LoginPage() {
                 <FaceVerification
                   onVerificationComplete={handleFaceVerificationComplete}
                   onVerificationFailure={handleFaceVerificationError}
-                  storedFaceDescriptor={userFaceDescriptor}
+                  onFaceCaptured={handleFaceCaptured}
                   allowSkip={false} // Disable skip in production
                 />
 

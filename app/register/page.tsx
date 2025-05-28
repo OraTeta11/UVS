@@ -19,7 +19,6 @@ export default function RegisterPage() {
     firstName: "",
     lastName: "",
     email: "",
-    faculty: "",
     department: "",
     gender: "",
   })
@@ -30,6 +29,10 @@ export default function RegisterPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
@@ -67,13 +70,25 @@ export default function RegisterPage() {
         ...formData,
         faceDescriptor: Array.from(faceDescriptor), // Convert Float32Array to regular array for JSON
       }
-      console.log("Registration data:", registrationData)
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(registrationData),
+      });
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Registration failed');
+      }
+
+      const result = await response.json();
+      console.log('Registration successful:', result);
+
       setRegistrationComplete(true)
-    } catch (error) {
-      setRegistrationError("Failed to complete registration. Please try again.")
+    } catch (error: any) {
+      setRegistrationError(error.message || "Failed to complete registration. Please try again.")
     }
   }
 
@@ -192,26 +207,18 @@ export default function RegisterPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="faculty">Faculty</Label>
-                        <Input
-                          id="faculty"
-                          name="faculty"
-                          value={formData.faculty}
-                          onChange={handleInputChange}
-                          placeholder="e.g. Science and Technology"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
                         <Label htmlFor="department">Department</Label>
-                        <Input
-                          id="department"
-                          name="department"
-                          value={formData.department}
-                          onChange={handleInputChange}
-                          placeholder="e.g. Computer Science"
-                          required
-                        />
+                        <Select value={formData.department} onValueChange={(value) => handleSelectChange('department', value)}>
+                          <SelectTrigger id="department">
+                            <SelectValue placeholder="Select department" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="IS">IS</SelectItem>
+                            <SelectItem value="IT">IT</SelectItem>
+                            <SelectItem value="CS">CS</SelectItem>
+                            <SelectItem value="CSE">CSE</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="gender">Gender</Label>
@@ -231,7 +238,7 @@ export default function RegisterPage() {
                       <Button
                         className="bg-[#003B71] hover:bg-[#002a52]"
                         onClick={handleNextStep}
-                        disabled={!formData.studentId || !formData.firstName || !formData.lastName || !formData.email}
+                        disabled={!formData.studentId || !formData.firstName || !formData.lastName || !formData.email || !formData.department}
                       >
                         Next Step
                       </Button>
@@ -297,9 +304,7 @@ export default function RegisterPage() {
                         </div>
                         <div>
                           <p className="text-sm text-gray-500">Faculty/Department</p>
-                          <p className="font-medium">
-                            {formData.faculty} / {formData.department}
-                          </p>
+                          <p className="font-medium">{formData.department}</p>
                         </div>
                         <div className="md:col-span-2">
                           <p className="text-sm text-gray-500">Face Registration</p>

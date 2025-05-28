@@ -7,13 +7,15 @@ import { loadModels, startVideo, stopVideo, detectFace, compareFaces } from '@/l
 interface FaceVerificationProps {
   onVerificationSuccess: () => void
   onVerificationFailure: () => void
+  onFaceCaptured?: (descriptor: Float32Array) => void
   storedFaceDescriptor?: Float32Array // This will come from your database
 }
 
 export default function FaceVerification({
   onVerificationSuccess,
   onVerificationFailure,
-  storedFaceDescriptor
+  onFaceCaptured,
+  storedFaceDescriptor,
 }: FaceVerificationProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isModelLoaded, setIsModelLoaded] = useState(false)
@@ -58,6 +60,16 @@ export default function FaceVerification({
       }
       if (detections.length > 1) {
         setError('Multiple faces detected. Please ensure only one face is visible')
+        return
+      }
+
+      if (onFaceCaptured && detections[0].descriptor) {
+        onFaceCaptured(detections[0].descriptor)
+      }
+
+      if (!storedFaceDescriptor) {
+        setError('Stored face descriptor not available for comparison.')
+        onVerificationFailure()
         return
       }
 

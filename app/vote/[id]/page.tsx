@@ -10,6 +10,7 @@ import { AlertCircle, ArrowLeft, CheckCircle2, Clock, Loader2, User } from "luci
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
 import Image from "next/image"
+import { useAuth } from '@/context/AuthContext'
 
 export default function VotePage({ params }: { params: { id: string } }) {
   const [step, setStep] = useState(1)
@@ -18,23 +19,15 @@ export default function VotePage({ params }: { params: { id: string } }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [voteSubmitted, setVoteSubmitted] = useState(false)
   const [verificationError, setVerificationError] = useState<string | null>(null)
-  const [userFaceDescriptor, setUserFaceDescriptor] = useState<Float32Array | null>(null)
+  const [capturedFaceDescriptor, setCapturedFaceDescriptor] = useState<Float32Array | null>(null)
+
+  const { studentId: authenticatedStudentId } = useAuth();
 
   useEffect(() => {
-    // Fetch user's face descriptor when component mounts
-    const fetchUserFaceDescriptor = async () => {
-      try {
-        // Here you would fetch the user's face descriptor from your backend
-        // For now, we'll simulate this with a mock descriptor
-        const mockDescriptor = new Float32Array(128).fill(0.5)
-        setUserFaceDescriptor(mockDescriptor)
-      } catch (error) {
-        console.error("Failed to fetch user face descriptor:", error)
-      }
-    }
+    // In a real app, you would likely fetch the user's student ID or identifier here
+    // For now, we'll assume the user is authenticated and their ID is available.
 
-    fetchUserFaceDescriptor()
-  }, [])
+  }, []) // Empty dependency array to run only once on mount
 
   // Mock election data
   const election = {
@@ -84,31 +77,64 @@ export default function VotePage({ params }: { params: { id: string } }) {
   }
 
   const handleFaceVerificationComplete = async () => {
-    setVerificationComplete(true)
-    setVerificationError(null)
-
-    try {
-      // Here you would verify the face descriptor with the stored one
-      // For now, we'll simulate this with a timeout
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      
-      // Simulate vote submission
-      setIsSubmitting(true)
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      
-      setVoteSubmitted(true)
-    } catch (error) {
-      setVerificationError("Face verification failed. Please try again.")
-      setVerificationComplete(false)
-    } finally {
-      setIsSubmitting(false)
-    }
+    // This function will be called by FaceVerification component on internal success (e.g., camera started)
+    // We will handle the actual verification in handleFaceCaptured
+    setVerificationComplete(true); // This might indicate camera is ready or similar now
+    setVerificationError(null);
   }
 
-  const handleFaceVerificationError = (error: string) => {
-    setVerificationError(error)
+  const handleFaceVerificationError = () => {
+    setVerificationError(null)
     setVerificationComplete(false)
   }
+
+  const handleFaceCaptured = async (descriptor: Float32Array) => {
+    setCapturedFaceDescriptor(descriptor);
+    setVerificationComplete(true); // Indicate verification process starting
+    setVerificationError(null);
+    setIsSubmitting(true); // Indicate that the verification/submission process is ongoing
+
+    // Get the actual student ID from the AuthContext
+    const studentId = authenticatedStudentId; // Get studentId directly from useAuth
+
+    if (!studentId) {
+      // Handle case where user is not logged in or studentId is missing in context
+      setVerificationError("User not authenticated. Please log in before voting.");
+      setIsSubmitting(false);
+      // Optionally redirect to login page
+      // router.push('/login');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/verify-face', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          studentId: studentId,
+          faceDescriptor: Array.from(descriptor),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Verification failed');
+      }
+
+      const result = await response.json();
+      console.log('Verification successful:', result);
+
+      // If verification is successful, proceed to the next step (confirm vote)
+      setStep(3);
+
+    } catch (error: any) {
+      setVerificationError(error.message || "Face verification failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleSubmitVote = () => {
     setIsSubmitting(true)
@@ -256,9 +282,10 @@ export default function VotePage({ params }: { params: { id: string } }) {
                     </Alert>
 
                     <FaceVerification
-                      onVerificationComplete={handleFaceVerificationComplete}
+                      onVerificationSuccess={handleFaceVerificationComplete}
                       onVerificationFailure={handleFaceVerificationError}
-                      storedFaceDescriptor={userFaceDescriptor}
+                      onFaceCaptured={handleFaceCaptured}
+                      // storedFaceDescriptor is handled by the backend verify-face endpoint
                       allowSkip={false} // Disable skip in production
                     />
 

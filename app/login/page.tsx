@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { FaceVerification } from "@/components/face-recognition/face-verification"
+import FaceVerification from "@/components/face-recognition/face-verification"
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
@@ -16,29 +16,57 @@ export default function LoginPage() {
   const [isVerifying, setIsVerifying] = useState(false)
   const [verificationComplete, setVerificationComplete] = useState(false)
   const [loginSuccess, setLoginSuccess] = useState(false)
+  const [loginError, setLoginError] = useState<string | null>(null)
+  const [userFaceDescriptor, setUserFaceDescriptor] = useState<Float32Array | null>(null)
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
     setIsVerifying(true)
+    setLoginError(null)
 
-    // Simulate student ID verification
-    setTimeout(() => {
+    try {
+      // Here you would verify the student ID and fetch the user's face descriptor
+      // For now, we'll simulate this with a timeout
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+      
+      // Simulate fetching user data
+      const mockUserData = {
+        studentId,
+        faceDescriptor: new Float32Array(128).fill(0.5), // Mock face descriptor
+      }
+      
+      setUserFaceDescriptor(mockUserData.faceDescriptor)
       setIsVerifying(false)
       setStep(2)
-    }, 1500)
+    } catch (error) {
+      setLoginError("Failed to verify student ID. Please try again.")
+      setIsVerifying(false)
+    }
   }
 
-  const handleFaceVerificationComplete = () => {
+  const handleFaceVerificationComplete = async () => {
     setVerificationComplete(true)
+    setLoginError(null)
 
-    // Simulate login process
-    setTimeout(() => {
+    try {
+      // Here you would verify the face descriptor with the stored one
+      // For now, we'll simulate this with a timeout
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      
       setLoginSuccess(true)
 
       // Redirect to dashboard after successful login
       setTimeout(() => {
         window.location.href = "/dashboard"
       }, 1500)
-    }, 1000)
+    } catch (error) {
+      setLoginError("Face verification failed. Please try again.")
+      setVerificationComplete(false)
+    }
+  }
+
+  const handleFaceVerificationError = (error: string) => {
+    setLoginError(error)
+    setVerificationComplete(false)
   }
 
   return (
@@ -50,6 +78,14 @@ export default function LoginPage() {
             <CardDescription>Access your University of Rwanda voting account</CardDescription>
           </CardHeader>
           <CardContent>
+            {loginError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{loginError}</AlertDescription>
+              </Alert>
+            )}
+
             {step === 1 && (
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -100,7 +136,9 @@ export default function LoginPage() {
 
                 <FaceVerification
                   onVerificationComplete={handleFaceVerificationComplete}
-                  allowSkip={true} // Enable skip feature
+                  onVerificationFailure={handleFaceVerificationError}
+                  storedFaceDescriptor={userFaceDescriptor}
+                  allowSkip={false} // Disable skip in production
                 />
 
                 {verificationComplete && !loginSuccess && (

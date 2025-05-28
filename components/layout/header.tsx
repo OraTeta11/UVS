@@ -17,7 +17,7 @@ export default function Header() {
           <div className="flex h-10 items-center justify-between">
             <div className="flex items-center">
               <Link href="/" className="flex items-center">
-                <Image src="/ur-logo.png" alt="University of Rwanda" width={50} height={50} className="mr-2" />
+                <Image src="/ur-logo.png.jpeg" alt="University of Rwanda" width={50} height={50} className="mr-2" />
                 <span className="font-semibold text-lg hidden md:inline-block">University of Rwanda Voting System</span>
               </Link>
             </div>

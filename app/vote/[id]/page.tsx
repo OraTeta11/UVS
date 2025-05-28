@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { FaceVerification } from "@/components/face-recognition/face-verification"
+import FaceVerification from "@/components/face-recognition/face-verification"
 import { AlertCircle, ArrowLeft, CheckCircle2, Clock, Loader2, User } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
@@ -17,6 +17,24 @@ export default function VotePage({ params }: { params: { id: string } }) {
   const [verificationComplete, setVerificationComplete] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [voteSubmitted, setVoteSubmitted] = useState(false)
+  const [verificationError, setVerificationError] = useState<string | null>(null)
+  const [userFaceDescriptor, setUserFaceDescriptor] = useState<Float32Array | null>(null)
+
+  useEffect(() => {
+    // Fetch user's face descriptor when component mounts
+    const fetchUserFaceDescriptor = async () => {
+      try {
+        // Here you would fetch the user's face descriptor from your backend
+        // For now, we'll simulate this with a mock descriptor
+        const mockDescriptor = new Float32Array(128).fill(0.5)
+        setUserFaceDescriptor(mockDescriptor)
+      } catch (error) {
+        console.error("Failed to fetch user face descriptor:", error)
+      }
+    }
+
+    fetchUserFaceDescriptor()
+  }, [])
 
   // Mock election data
   const election = {
@@ -55,15 +73,41 @@ export default function VotePage({ params }: { params: { id: string } }) {
   }
 
   const handleNextStep = () => {
-    setStep(step + 1)
+    if (!selectedCandidate) {
+      return
+    }
+    setStep(2)
   }
 
   const handlePrevStep = () => {
     setStep(step - 1)
   }
 
-  const handleFaceVerificationComplete = () => {
+  const handleFaceVerificationComplete = async () => {
     setVerificationComplete(true)
+    setVerificationError(null)
+
+    try {
+      // Here you would verify the face descriptor with the stored one
+      // For now, we'll simulate this with a timeout
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      
+      // Simulate vote submission
+      setIsSubmitting(true)
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+      
+      setVoteSubmitted(true)
+    } catch (error) {
+      setVerificationError("Face verification failed. Please try again.")
+      setVerificationComplete(false)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleFaceVerificationError = (error: string) => {
+    setVerificationError(error)
+    setVerificationComplete(false)
   }
 
   const handleSubmitVote = () => {
@@ -100,6 +144,14 @@ export default function VotePage({ params }: { params: { id: string } }) {
             </div>
           </CardHeader>
           <CardContent>
+            {verificationError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{verificationError}</AlertDescription>
+              </Alert>
+            )}
+
             {voteSubmitted ? (
               <div className="text-center py-8">
                 <CheckCircle2 className="mx-auto h-16 w-16 text-green-500 mb-4" />
@@ -196,31 +248,26 @@ export default function VotePage({ params }: { params: { id: string } }) {
                   <div className="space-y-6">
                     <Alert>
                       <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Identity Verification Required</AlertTitle>
+                      <AlertTitle>Face Verification Required</AlertTitle>
                       <AlertDescription>
-                        For security purposes, we need to verify you're a real person and match your face to your
-                        profile before submitting your vote. This prevents fraud and ensures the integrity of the
-                        election.
+                        To ensure the security of your vote, we need to verify your identity using facial recognition.
+                        Please look directly at the camera and follow the instructions.
                       </AlertDescription>
                     </Alert>
 
                     <FaceVerification
                       onVerificationComplete={handleFaceVerificationComplete}
-                      allowSkip={true} // Enable skip feature
+                      onVerificationFailure={handleFaceVerificationError}
+                      storedFaceDescriptor={userFaceDescriptor}
+                      allowSkip={false} // Disable skip in production
                     />
 
-                    <div className="flex justify-between mt-6">
-                      <Button variant="outline" onClick={handlePrevStep}>
-                        Back
-                      </Button>
-                      <Button
-                        className="bg-[#003B71] hover:bg-[#002a52]"
-                        onClick={handleNextStep}
-                        disabled={!verificationComplete}
-                      >
-                        Next Step
-                      </Button>
-                    </div>
+                    {verificationComplete && isSubmitting && (
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                        <span>Submitting your vote...</span>
+                      </div>
+                    )}
                   </div>
                 )}
 

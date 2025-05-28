@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { FaceRegistration } from "@/components/face-recognition/face-registration"
+import FaceRegistration from "@/components/face-recognition/face-registration"
 import { AlertCircle, CheckCircle2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -25,6 +25,8 @@ export default function RegisterPage() {
   })
   const [faceRegistered, setFaceRegistered] = useState(false)
   const [registrationComplete, setRegistrationComplete] = useState(false)
+  const [faceDescriptor, setFaceDescriptor] = useState<Float32Array | null>(null)
+  const [registrationError, setRegistrationError] = useState<string | null>(null)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -39,19 +41,40 @@ export default function RegisterPage() {
     setStep(step - 1)
   }
 
-  const handleFaceRegistrationComplete = () => {
+  const handleFaceRegistrationComplete = (descriptor: Float32Array) => {
+    setFaceDescriptor(descriptor)
     setFaceRegistered(true)
+    setRegistrationError(null)
+  }
+
+  const handleFaceRegistrationError = (error: string) => {
+    setRegistrationError(error)
+    setFaceRegistered(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Here you would send the data to your backend
-    console.log("Registration data:", { ...formData, faceRegistered })
+    setRegistrationError(null)
 
-    // Simulate API call
-    setTimeout(() => {
+    if (!faceDescriptor) {
+      setRegistrationError("Face registration is required to complete registration")
+      return
+    }
+
+    try {
+      // Here you would send the data to your backend
+      const registrationData = {
+        ...formData,
+        faceDescriptor: Array.from(faceDescriptor), // Convert Float32Array to regular array for JSON
+      }
+      console.log("Registration data:", registrationData)
+
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1500))
       setRegistrationComplete(true)
-    }, 1500)
+    } catch (error) {
+      setRegistrationError("Failed to complete registration. Please try again.")
+    }
   }
 
   return (
@@ -65,6 +88,13 @@ export default function RegisterPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {registrationError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{registrationError}</AlertDescription>
+              </Alert>
+            )}
             {registrationComplete ? (
               <div className="text-center py-8">
                 <CheckCircle2 className="mx-auto h-16 w-16 text-green-500 mb-4" />
@@ -223,7 +253,8 @@ export default function RegisterPage() {
 
                     <FaceRegistration
                       onRegistrationComplete={handleFaceRegistrationComplete}
-                      allowSkip={true} // Enable skip feature
+                      onRegistrationError={handleFaceRegistrationError}
+                      allowSkip={false} // Disable skip in production
                     />
 
                     <div className="flex justify-between mt-6">

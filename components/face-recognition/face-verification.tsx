@@ -72,6 +72,7 @@ export default function FaceVerification({
         setSimilarity(sim)
         onVerificationSuccess()
         setError(null)
+        stopCamera()
       } else {
         setError('Face verification failed. Please try again.')
         onVerificationFailure()

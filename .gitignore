@@ -25,3 +25,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Ignore Python virtual environments and cache
+venv/
+__pycache__/
+*.pyc
+
+# Ignore Python scripts (uncomment if you do not want any .py files in the repo)
+.py
+
+ UVS-mirror/ 

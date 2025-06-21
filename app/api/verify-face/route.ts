@@ -1,55 +1,66 @@
-import { NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
-// import { compareFaces } from '@/lib/face-recognition'; // No longer needed for server-side comparison
+import { sql } from "@/lib/db";
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 
-// Define a threshold for face matching (adjust as needed)
-const DISTANCE_THRESHOLD = 0.6; 
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+});
 
-// Helper function for Euclidean distance (can be moved to a separate utility if used elsewhere)
-function euclideanDistance(descriptor1: number[] | Float32Array, descriptor2: number[] | Float32Array): number {
-  if (descriptor1.length !== descriptor2.length) {
-    throw new Error("Descriptors must have the same length");
+async function getImageFromS3(s3Key: string): Promise<string> {
+  const command = new GetObjectCommand({
+    Bucket: process.env.AWS_S3_BUCKET!,
+    Key: s3Key,
+  });
+  const response = await s3.send(command);
+  const stream = response.Body as NodeJS.ReadableStream;
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.from(chunk));
   }
-  let sum = 0;
-  for (let i = 0; i < descriptor1.length; i++) {
-    sum += Math.pow(descriptor1[i] - descriptor2[i], 2);
-  }
-  return Math.sqrt(sum);
+  const base64 = Buffer.concat(chunks).toString("base64");
+  console.log('getImageFromS3: s3Key', s3Key, 'base64 length', base64.length, 'sample', base64.slice(0, 30));
+  return base64;
 }
 
-export async function POST(request: Request) {
-  try {
-    const verificationData = await request.json();
-    const { studentId, faceDescriptor } = verificationData;
+function stripBase64Prefix(data: string): string {
+  // Remove data:image/jpeg;base64, or similar prefix
+  return data.replace(/^data:image\/\w+;base64,?/, '').replace(/^dataimage\/[a-zA-Z]+base64,?/, '');
+}
 
-    if (!studentId || !faceDescriptor) {
-      return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
+export async function POST(req: Request) {
+  const { studentId, imageData } = await req.json();
+
+  // Get S3 key from DB
+  const user = await sql`SELECT face_image_s3_key FROM users WHERE student_id = ${studentId}`;
+  const s3Key = user[0]?.face_image_s3_key;
+  if (!s3Key) {
+    return new Response(JSON.stringify({ error: "No stored face for user" }), { status: 404 });
     }
 
-    // 1. Fetch the stored face descriptor for the given student ID
-    const user = await sql`
-      SELECT face_descriptor FROM users WHERE student_id = ${studentId};
-    `;
+  // Download stored image from S3 and convert to base64
+  const storedImageBase64 = await getImageFromS3(s3Key);
+  console.log('verify-face: imageData length', imageData.length, 'sample', imageData.slice(0, 30));
+  console.log('verify-face: storedImageBase64 length', storedImageBase64.length, 'sample', storedImageBase64.slice(0, 30));
 
-    if (user.length === 0 || !user[0].face_descriptor) {
-      return NextResponse.json({ message: 'User not found or face not registered' }, { status: 404 });
-    }
+  // Strip base64 prefix from both images
+  const cleanSource = stripBase64Prefix(imageData);
+  const cleanTarget = stripBase64Prefix(storedImageBase64);
 
-    const storedDescriptor = new Float32Array(user[0].face_descriptor);
+  // Call Rekognition compare-faces API (use absolute URL)
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const rekognitionRes = await fetch(`${baseUrl}/api/rekognition/compare-faces`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sourceImageBytes: cleanSource,
+      targetImageBytes: cleanTarget,
+    }),
+  });
+  const rekognitionData = await rekognitionRes.json();
+  const verified = rekognitionData.FaceMatches && rekognitionData.FaceMatches.length > 0 && rekognitionData.FaceMatches[0].Similarity > 90;
 
-    // 2. Compare the provided face descriptor with the stored one
-    const distance = euclideanDistance(faceDescriptor, storedDescriptor);
-    const isMatch = distance < DISTANCE_THRESHOLD; // Check against the threshold
-
-    if (isMatch) {
-      // In a real app, you would also issue a session token or similar here
-      return NextResponse.json({ message: 'Face verification successful' }, { status: 200 });
-    } else {
-      return NextResponse.json({ message: 'Face verification failed' }, { status: 401 });
-    }
-
-  } catch (error) {
-    console.error('Error during face verification:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
-  }
+  return new Response(JSON.stringify({ verified }), { status: 200 });
 } 

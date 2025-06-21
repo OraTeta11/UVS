@@ -18,7 +18,12 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname()
 
-  const hideHeader = pathname === '/dashboard' || pathname === '/admin/dashboard' || pathname === '/elections' || pathname === '/my-elections' || pathname === '/profile'
+  // Hide header for all dashboard and admin routes
+  const hideHeader = pathname?.startsWith('/dashboard') || 
+                    pathname?.startsWith('/admin') || 
+                    pathname === '/elections' || 
+                    pathname === '/my-elections' || 
+                    pathname === '/profile'
 
   return (
     <html lang="en">

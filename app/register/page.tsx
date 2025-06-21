@@ -16,16 +16,30 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState({
     studentId: "",
-    firstName: "",
-    lastName: "",
+    name: "",
     email: "",
     department: "",
     gender: "",
+    password: "",
+    confirmPassword: "",
   })
   const [faceRegistered, setFaceRegistered] = useState(false)
   const [registrationComplete, setRegistrationComplete] = useState(false)
-  const [faceDescriptor, setFaceDescriptor] = useState<Float32Array | null>(null)
   const [registrationError, setRegistrationError] = useState<string | null>(null)
+  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({})
+
+  const validate = () => {
+    const errors: { [key: string]: string } = {};
+    if (!formData.name.trim()) errors.name = "Name is required";
+    if (!/^[0-9]{9}$/.test(formData.studentId)) errors.studentId = "Student ID must be exactly 9 digits";
+    if (!formData.email.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formData.email)) errors.email = "Enter a valid email";
+    if (!formData.department.trim()) errors.department = "Department is required";
+    if (!formData.gender) errors.gender = "Gender is required";
+    if (!formData.password) errors.password = "Password is required";
+    if (formData.password.length < 6) errors.password = "Password must be at least 6 characters";
+    if (formData.password !== formData.confirmPassword) errors.confirmPassword = "Passwords do not match";
+    return errors;
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -37,38 +51,38 @@ export default function RegisterPage() {
   }
 
   const handleNextStep = () => {
-    setStep(step + 1)
+    const errors = validate();
+    setFormErrors(errors);
+    if (Object.keys(errors).length === 0) setStep(step + 1);
   }
 
   const handlePrevStep = () => {
     setStep(step - 1)
   }
 
-  const handleFaceRegistrationComplete = (descriptor: Float32Array) => {
-    setFaceDescriptor(descriptor)
+  const handleFaceRegistrationSuccess = () => {
     setFaceRegistered(true)
     setRegistrationError(null)
   }
 
-  const handleFaceRegistrationError = (error: string) => {
-    setRegistrationError(error)
+  const handleFaceRegistrationFailure = () => {
     setFaceRegistered(false)
+    setRegistrationError("Face registration failed. Please try again.")
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setRegistrationError(null)
-
-    if (!faceDescriptor) {
+    const errors = validate();
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+    if (!faceRegistered) {
       setRegistrationError("Face registration is required to complete registration")
       return
     }
-
     try {
-      // Here you would send the data to your backend
       const registrationData = {
         ...formData,
-        faceDescriptor: Array.from(faceDescriptor), // Convert Float32Array to regular array for JSON
       }
       const response = await fetch('/api/register', {
         method: 'POST',
@@ -77,15 +91,11 @@ export default function RegisterPage() {
         },
         body: JSON.stringify(registrationData),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Registration failed');
       }
-
       const result = await response.json();
-      console.log('Registration successful:', result);
-
       setRegistrationComplete(true)
     } catch (error: any) {
       setRegistrationError(error.message || "Failed to complete registration. Please try again.")
@@ -117,9 +127,7 @@ export default function RegisterPage() {
                 <p className="text-gray-600 mb-6">
                   Your account has been successfully created. You can now log in to access the voting system.
                 </p>
-                <Button className="bg-[#003B71] hover:bg-[#002a52]" onClick={() => (window.location.href = "/login")}>
-                  Proceed to Login
-                </Button>
+                <Button className="bg-[#003B71] hover:bg-[#002a52]" onClick={() => (window.location.href = "/login")}>Proceed to Login</Button>
               </div>
             ) : (
               <>
@@ -159,7 +167,7 @@ export default function RegisterPage() {
                 </div>
 
                 {step === 1 && (
-                  <form className="space-y-4">
+                  <form className="space-y-4" onSubmit={handleNextStep}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="studentId">Student ID</Label>
@@ -171,6 +179,7 @@ export default function RegisterPage() {
                           placeholder="Enter your student ID"
                           required
                         />
+                        {formErrors.studentId && <p className="text-red-500 text-xs">{formErrors.studentId}</p>}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="email">Email Address</Label>
@@ -183,66 +192,77 @@ export default function RegisterPage() {
                           placeholder="your.email@ur.ac.rw"
                           required
                         />
+                        {formErrors.email && <p className="text-red-500 text-xs">{formErrors.email}</p>}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="firstName">First Name</Label>
+                        <Label htmlFor="name">Name</Label>
                         <Input
-                          id="firstName"
-                          name="firstName"
-                          value={formData.firstName}
+                          id="name"
+                          name="name"
+                          value={formData.name}
                           onChange={handleInputChange}
-                          placeholder="Enter your first name"
+                          placeholder="Enter your full name"
                           required
                         />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="lastName">Last Name</Label>
-                        <Input
-                          id="lastName"
-                          name="lastName"
-                          value={formData.lastName}
-                          onChange={handleInputChange}
-                          placeholder="Enter your last name"
-                          required
-                        />
+                        {formErrors.name && <p className="text-red-500 text-xs">{formErrors.name}</p>}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="department">Department</Label>
-                        <Select value={formData.department} onValueChange={(value) => handleSelectChange('department', value)}>
-                          <SelectTrigger id="department">
-                            <SelectValue placeholder="Select department" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="IS">IS</SelectItem>
-                            <SelectItem value="IT">IT</SelectItem>
-                            <SelectItem value="CS">CS</SelectItem>
-                            <SelectItem value="CSE">CSE</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Input
+                          id="department"
+                          name="department"
+                          value={formData.department}
+                          onChange={handleInputChange}
+                          placeholder="Enter your department"
+                          required
+                        />
+                        {formErrors.department && <p className="text-red-500 text-xs">{formErrors.department}</p>}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="gender">Gender</Label>
-                        <Select value={formData.gender} onValueChange={(value) => setFormData((prev) => ({ ...prev, gender: value }))}>
+                        <Select
+                          value={formData.gender}
+                          onValueChange={(value) => handleSelectChange('gender', value)}
+                          required
+                        >
                           <SelectTrigger id="gender">
                             <SelectValue placeholder="Select gender" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="male">Male</SelectItem>
                             <SelectItem value="female">Female</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
                           </SelectContent>
                         </Select>
+                        {formErrors.gender && <p className="text-red-500 text-xs">{formErrors.gender}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Password</Label>
+                        <Input
+                          id="password"
+                          name="password"
+                          type="password"
+                          value={formData.password}
+                          onChange={handleInputChange}
+                          placeholder="Enter your password"
+                          required
+                        />
+                        {formErrors.password && <p className="text-red-500 text-xs">{formErrors.password}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirmPassword">Confirm Password</Label>
+                        <Input
+                          id="confirmPassword"
+                          name="confirmPassword"
+                          type="password"
+                          value={formData.confirmPassword}
+                          onChange={handleInputChange}
+                          placeholder="Confirm your password"
+                          required
+                        />
+                        {formErrors.confirmPassword && <p className="text-red-500 text-xs">{formErrors.confirmPassword}</p>}
                       </div>
                     </div>
-                    <div className="flex justify-end mt-6">
-                      <Button
-                        className="bg-[#003B71] hover:bg-[#002a52]"
-                        onClick={handleNextStep}
-                        disabled={!formData.studentId || !formData.firstName || !formData.lastName || !formData.email || !formData.department}
-                      >
-                        Next Step
-                      </Button>
-                    </div>
+                    <Button type="submit" className="bg-[#003B71] hover:bg-[#002a52] w-full">Next Step</Button>
                   </form>
                 )}
 
@@ -259,9 +279,9 @@ export default function RegisterPage() {
                     </Alert>
 
                     <FaceRegistration
-                      onRegistrationComplete={handleFaceRegistrationComplete}
-                      onRegistrationError={handleFaceRegistrationError}
-                      allowSkip={false} // Disable skip in production
+                      onRegistrationSuccess={handleFaceRegistrationSuccess}
+                      onRegistrationFailure={handleFaceRegistrationFailure}
+                      studentId={formData.studentId}
                     />
 
                     <div className="flex justify-between mt-6">
@@ -295,7 +315,7 @@ export default function RegisterPage() {
                         <div>
                           <p className="text-sm text-gray-500">Name</p>
                           <p className="font-medium">
-                            {formData.firstName} {formData.lastName}
+                            {formData.name}
                           </p>
                         </div>
                         <div>

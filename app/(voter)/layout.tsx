@@ -13,23 +13,23 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react"
-import MyElections from "./components/my-elections"
+import { useAuth } from "@/lib/hooks/useAuth"
 
 const navigation = [
   {
-    name: "Dashboard",
-    href: "/dashboard",
-    icon: Home,
-  },
-  {
     name: "My Elections",
-    href: "/my-elections",
+    href: "/dashboard/my-elections",
     icon: VoteIcon,
   },
   {
     name: "Profile",
-    href: "/profile",
+    href: "/dashboard/profile",
     icon: User,
+  },
+  {
+    name: "Home",
+    href: "/dashboard",
+    icon: Home,
   },
 ]
 
@@ -38,27 +38,25 @@ export default function VoterLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [isCollapsed, setIsCollapsed] = useState(false)
-  const [activeSection, setActiveSection] = useState("dashboard")
+  const [isCollapsed, setIsCollapsed] = useState(true)
   const router = useRouter()
   const pathname = usePathname()
+  const { user, loading: authLoading } = useAuth()
+
+  // Helper for initials
+  const getInitials = (name: string) => {
+    if (!name || name.trim() === "") return "?";
+    const parts = name.trim().split(" ").filter(Boolean);
+    if (parts.length === 0) return "?";
+    if (parts.length === 1) return parts[0][0] ? parts[0][0].toUpperCase() : "?";
+    const first = parts[0][0] ? parts[0][0].toUpperCase() : "?";
+    const second = parts[1][0] ? parts[1][0].toUpperCase() : "?";
+    return first + second;
+  }
 
   const handleLogout = () => {
     // Add logout logic here
     router.push("/login")
-  }
-
-  const renderContent = () => {
-    switch (activeSection) {
-      case "dashboard":
-        return <MyElections />
-      case "my-elections":
-        return <MyElections />
-      case "profile":
-        return <div>Profile Content</div>
-      default:
-        return children
-    }
   }
 
   return (
@@ -75,12 +73,16 @@ export default function VoterLayout({
           <div className="p-4 border-b border-white/10">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-semibold">
-                JD
+                {authLoading ? "--" : getInitials((user?.firstName || "") + " " + (user?.lastName || ""))}
               </div>
               {!isCollapsed && (
                 <div>
-                  <p className="font-medium text-white">John Doe</p>
-                  <p className="text-sm text-white/70">Student</p>
+                  {authLoading ? (
+                    <div className="h-4 w-24 bg-white/20 rounded animate-pulse mb-1" />
+                  ) : (
+                    <p className="font-medium text-white">{(user?.firstName || "") + (user?.lastName ? " " + user.lastName : "") || "-"}</p>
+                  )}
+                  <p className="text-sm text-white/70">{user?.studentId || user?.email || "Student"}</p>
                 </div>
               )}
             </div>
@@ -94,9 +96,7 @@ export default function VoterLayout({
                 return (
                   <button
                     key={item.name}
-                    onClick={() => {
-                      setActiveSection(item.href.split("/")[1] || "dashboard")
-                    }}
+                    onClick={() => router.push(item.href)}
                     className={cn(
                       "flex items-center w-full px-3 py-2 text-sm font-medium rounded-md transition-colors",
                       isActive
@@ -111,6 +111,14 @@ export default function VoterLayout({
               })}
             </nav>
           </ScrollArea>
+
+          {/* Collapse Toggle */}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-4 border-t border-white/10 flex items-center justify-center text-white/70 hover:text-white"
+          >
+            {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+          </button>
 
           {/* Logout Button */}
           <div className="p-4 border-t border-white/10">
@@ -129,7 +137,7 @@ export default function VoterLayout({
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Content Area */}
         <main className="flex-1 overflow-auto p-6">
-          {renderContent()}
+          {children}
         </main>
       </div>
     </div>

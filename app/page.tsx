@@ -8,9 +8,12 @@ import { useEffect } from 'react'
 import { useAuth } from "@/lib/hooks/useAuth"
 import { Loading } from "@/components/ui/loading"
 import { ErrorMessage } from "@/components/ui/error-boundary"
+import { useRouter, usePathname } from "next/navigation"
 
 export default function Home() {
   const { user, loading, error } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [])
 
   useEffect(() => {
@@ -126,13 +129,13 @@ export default function Home() {
             </CardHeader>
             <CardContent className="p-4 pt-2">
               <p className="mb-4 text-gray-800 text-sm">See all active elections and upcoming voting opportunities at the University.</p>
-              <Button className="w-full bg-[#003B71] hover:bg-[#002a52] text-white text-sm">
-                <Link href={user ? "/elections" : "/login"}>View Elections</Link>
+              <Button asChild className="w-full bg-[#003B71] hover:bg-[#002a52] text-white text-sm">
+                <Link href="/login">View Elections</Link>
               </Button>
             </CardContent>
           </Card>
         </div>
       </div>
     </div>
-  )
+  );
 }

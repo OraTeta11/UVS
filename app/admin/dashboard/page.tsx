@@ -48,6 +48,7 @@ import { AddCandidateModal } from '@/components/admin/AddCandidateModal';
 import { AddVoterModal } from '@/components/admin/AddVoterModal';
 import { userService } from '@/lib/services/users';
 import { ElectionResultsView } from "@/components/admin/ElectionResultsView";
+import { useAuth } from '@/lib/hooks/useAuth';
 
 export default function AdminDashboardPage() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
@@ -59,6 +60,7 @@ export default function AdminDashboardPage() {
   const router = useRouter()
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { user, logout } = useAuth();
 
   // Modal states
   const [showAddCandidateModal, setShowAddCandidateModal] = useState(false);
@@ -354,6 +356,11 @@ export default function AdminDashboardPage() {
       case 'users': return 'Users';
       default: return 'Admin Dashboard';
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
   };
 
   const renderContent = () => {
@@ -711,8 +718,8 @@ export default function AdminDashboardPage() {
           {!isSidebarCollapsed && (
              <div className="flex items-center">
                <div>
-                 <p className="font-semibold">Admin</p>
-                 <p className="text-sm text-gray-300">ADMIN001</p>
+                 <p className="font-semibold">{user ? `${user.firstName} ${user.lastName}` : 'Admin'}</p>
+                 <p className="text-sm text-gray-300">{user ? user.studentId : 'ADMIN001'}</p>
                </div>
              </div>
           )}
@@ -761,12 +768,7 @@ export default function AdminDashboardPage() {
 
           {/* Logout Option */}
           <div
-            onClick={() => {
-              // TODO: Implement logout logic here
-              console.log("Logout clicked");
-              // Example: Redirect to login page
-              // window.location.href = '/login';
-            }}
+            onClick={handleLogout}
             className="flex items-center px-3 py-2 rounded-md hover:bg-[#002a52] cursor-pointer mb-2 mx-2"
           >
             <LogOut className="mr-2 h-4 w-4" />

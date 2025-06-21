@@ -2,68 +2,111 @@ import { api } from './api';
 
 export interface LoginCredentials {
   studentId: string;
-  password: string;
+  faceDescriptor?: Float32Array;
 }
 
 export interface RegisterData {
   studentId: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  password: string;
-  faculty: string;
-  year: string;
-}
-
-export interface FaceVerificationData {
-  faceDescriptor: Float32Array;
-  studentId: string;
+  department: string;
+  gender: string;
 }
 
 export interface AuthResponse {
-  token: string;
   user: {
     id: string;
     studentId: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     email: string;
-    faculty: string;
-    year: string;
+    department: string;
+    gender: string;
+    role: string;
   };
 }
 
 export const authService = {
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/auth/login', credentials);
-    if (response.data) {
-      // Store token in localStorage or secure cookie
-      localStorage.setItem('token', response.data.token);
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials),
+      });
+
+      if (!response.ok) {
+        throw new Error('Login failed');
+      }
+
+      const data = await response.json();
+      // Store user data
+      localStorage.setItem('user', JSON.stringify(data));
+      return { user: data };
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     }
-    return response.data;
   },
 
   register: async (userData: RegisterData): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/auth/register', userData);
-    if (response.data) {
-      localStorage.setItem('token', response.data.token);
+    try {
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Registration failed');
+      }
+
+      const data = await response.json();
+      // Store user data
+      localStorage.setItem('user', JSON.stringify(data));
+      return { user: data };
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
     }
-    return response.data;
   },
 
-  verifyFace: async (faceData: FaceVerificationData): Promise<boolean> => {
-    const response = await api.post<{ verified: boolean }>('/auth/verify-face', faceData);
-    return response.data?.verified || false;
+  verifyFace: async (faceData: { faceDescriptor: Float32Array; studentId: string }): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/verify-face', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(faceData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Face verification failed');
+      }
+
+      const data = await response.json();
+      return data.verified || false;
+    } catch (error) {
+      console.error('Face verification error:', error);
+      throw error;
+    }
   },
 
   logout: () => {
-    localStorage.removeItem('token');
-    // Additional cleanup if needed
+    localStorage.removeItem('user');
   },
 
-  getToken: (): string | null => {
-    return localStorage.getItem('token');
+  getCurrentUser: () => {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return null;
+    try {
+      return JSON.parse(userStr);
+    } catch {
+      return null;
+    }
   },
 
   isAuthenticated: (): boolean => {
-    return !!localStorage.getItem('token');
+    return !!localStorage.getItem('user');
   },
 }; 

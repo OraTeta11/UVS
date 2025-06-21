@@ -8,15 +8,31 @@ export const useAuth = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const token = authService.getToken();
-    if (token) {
-      // You might want to validate the token here
-      // For now, we'll just set loading to false
-      setLoading(false);
-    } else {
-      setLoading(false);
-    }
+    const loadUser = async () => {
+      try {
+        // Load user data from local storage
+        let userData = authService.getCurrentUser();
+        if (userData) {
+          // If firstName or lastName is missing, fetch from profile API
+          if (!userData.firstName || !userData.lastName) {
+            const res = await fetch(`/api/users/profile?studentId=${userData.studentId}`);
+            if (res.ok) {
+              const profile = await res.json();
+              userData = { ...userData, ...profile };
+              localStorage.setItem('user', JSON.stringify(userData));
+            }
+          }
+          setUser(userData);
+        }
+      } catch (err) {
+        console.error('Error loading user:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load user');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUser();
   }, []);
 
   const login = async (credentials: LoginCredentials) => {
@@ -93,5 +109,6 @@ export const useAuth = () => {
     logout,
     verifyFace,
     isAuthenticated: !!user,
+    studentId: user?.studentId || null,
   };
 }; 

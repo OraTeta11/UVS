@@ -6,14 +6,14 @@ export async function GET(request) {
     const url = new URL(request.url);
     const studentId = url.searchParams.get('studentId');
     if (studentId) {
-      // Fetch only the face descriptor for the given studentId
+      // Fetch only the S3 key for the given studentId
       const user = await sql`
-        SELECT face_descriptor FROM users WHERE student_id = ${studentId}
+        SELECT face_image_s3_key FROM users WHERE student_id = ${studentId}
       `;
-      if (!user || user.length === 0 || !user[0].face_descriptor) {
+      if (!user || user.length === 0 || !user[0].face_image_s3_key) {
         return NextResponse.json({ error: 'User not found or face not registered' }, { status: 404 });
       }
-      return NextResponse.json({ faceDescriptor: user[0].face_descriptor });
+      return NextResponse.json({ data: { faceImageS3Key: user[0].face_image_s3_key } });
     }
     console.log('Attempting to fetch users from database...');
     const users = await sql`
@@ -33,7 +33,7 @@ export async function GET(request) {
     `;
     console.log('Raw users object from SQL (should be an array):', users);
     console.log('Successfully fetched users:', users.length, 'rows');
-    return NextResponse.json(users);
+    return NextResponse.json({ data: users });
   } catch (error) {
     console.error('Error fetching users in API route:', error);
     return NextResponse.json(

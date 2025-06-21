@@ -1,14 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Menu, Bell, MessageSquare, ChevronDown } from "lucide-react"
+import { Menu, Bell, MessageSquare, ChevronDown, LogOut, User, HelpCircle, Home as HomeIcon, Moon, Sun } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useTheme } from "next-themes"
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const { theme, setTheme } = useTheme();
+
+  const toggleDarkMode = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
 
   return (
     <header className="fixed top-0 z-50 w-full">
@@ -34,20 +40,16 @@ export default function Header() {
             </div>
 
             <nav className="hidden md:flex items-center space-x-1">
-              <Link href="/" className="px-3 py-2 text-sm hover:bg-[#002a52] rounded-md">
-                Home
+              <Link href="/" className="px-3 py-2 text-sm hover:bg-[#002a52] rounded-md flex items-center">
+                <HomeIcon className="h-4 w-4 mr-1" /> Home
               </Link>
-              <Link href="/elections" className="px-3 py-2 text-sm hover:bg-[#002a52] rounded-md">
-                Elections
+              <Link href="/help" className="px-3 py-2 text-sm hover:bg-[#002a52] rounded-md flex items-center">
+                <HelpCircle className="h-4 w-4 mr-1" /> Help
               </Link>
-              <Link href="/results" className="px-3 py-2 text-sm hover:bg-[#002a52] rounded-md">
-                Results
-              </Link>
-              <Link href="/help" className="px-3 py-2 text-sm hover:bg-[#002a52] rounded-md">
-                Help
-              </Link>
-
               <div className="flex items-center ml-4 space-x-2">
+                <Button variant="ghost" className="p-2 text-white hover:bg-[#002a52]" onClick={toggleDarkMode} aria-label="Toggle dark mode">
+                  {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="flex items-center text-white hover:bg-[#002a52]">
@@ -56,9 +58,21 @@ export default function Header() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>Profile</DropdownMenuItem>
-                    <DropdownMenuItem>Preferences</DropdownMenuItem>
-                    <DropdownMenuItem>Log out</DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard/profile" className="flex items-center">
+                        <User className="mr-2 h-4 w-4" /> Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/help" className="flex items-center">
+                        <HelpCircle className="mr-2 h-4 w-4" /> Help
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/logout" className="flex items-center">
+                        <LogOut className="mr-2 h-4 w-4" /> Log out
+                      </Link>
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -72,23 +86,20 @@ export default function Header() {
         <div className="md:hidden bg-white border-b shadow-sm">
           <div className="container mx-auto px-4 py-2">
             <nav className="flex flex-col space-y-2">
-              <Link href="/" className="px-3 py-2 text-[#003B71] hover:bg-gray-100 rounded-md">
-                Home
+              <Link href="/" className="px-3 py-2 text-[#003B71] hover:bg-gray-100 rounded-md flex items-center">
+                <HomeIcon className="h-4 w-4 mr-1" /> Home
               </Link>
-              <Link href="/elections" className="px-3 py-2 text-[#003B71] hover:bg-gray-100 rounded-md">
-                Elections
+              <Link href="/help" className="px-3 py-2 text-[#003B71] hover:bg-gray-100 rounded-md flex items-center">
+                <HelpCircle className="h-4 w-4 mr-1" /> Help
               </Link>
-              <Link href="/results" className="px-3 py-2 text-[#003B71] hover:bg-gray-100 rounded-md">
-                Results
+              <Link href="/dashboard/profile" className="px-3 py-2 text-[#003B71] hover:bg-gray-100 rounded-md flex items-center">
+                <User className="h-4 w-4 mr-1" /> Profile
               </Link>
-              <Link href="/help" className="px-3 py-2 text-[#003B71] hover:bg-gray-100 rounded-md">
-                Help
-              </Link>
-              <Link href="/profile" className="px-3 py-2 text-[#003B71] hover:bg-gray-100 rounded-md">
-                Profile
-              </Link>
-              <Link href="/logout" className="px-3 py-2 text-[#003B71] hover:bg-gray-100 rounded-md">
-                Log out
+              <Button variant="ghost" className="px-3 py-2 text-[#003B71] hover:bg-gray-100 rounded-md flex items-center w-full justify-start" onClick={toggleDarkMode} aria-label="Toggle dark mode">
+                {theme === "dark" ? <Sun className="h-4 w-4 mr-1" /> : <Moon className="h-4 w-4 mr-1" />} {theme === "dark" ? 'Light Mode' : 'Dark Mode'}
+              </Button>
+              <Link href="/logout" className="px-3 py-2 text-[#003B71] hover:bg-gray-100 rounded-md flex items-center">
+                <LogOut className="h-4 w-4 mr-1" /> Log out
               </Link>
             </nav>
           </div>

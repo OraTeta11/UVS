@@ -88,6 +88,7 @@ export function LivenessDetection({
   }, [challenges])
 
   const startCamera = async () => {
+    console.log('Liveness: startCamera called');
     try {
       setError(null)
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -101,13 +102,12 @@ export function LivenessDetection({
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         setIsCapturing(true)
-
         // Start checking for face
         startFaceDetection()
       }
     } catch (err) {
       console.error("Error accessing camera:", err)
-      setError("Could not access camera. Please ensure camera permissions are granted.")
+      setError("Could not access camera. Please ensure camera permissions are granted. " + (err instanceof Error ? err.message : ''))
     }
   }
 
@@ -136,14 +136,14 @@ export function LivenessDetection({
   }
 
   const startChallenges = () => {
+    console.log('Liveness: startChallenges called');
     setCurrentChallengeIndex(0)
     startCurrentChallenge()
   }
 
   const startCurrentChallenge = () => {
-    // Start countdown for the current challenge
+    console.log('Liveness: startCurrentChallenge', currentChallengeIndex);
     setCountdown(5)
-
     const countdownTimer = setInterval(() => {
       setCountdown((prev) => {
         if (prev === null || prev <= 1) {
@@ -159,20 +159,17 @@ export function LivenessDetection({
   const simulateChallengeCompletion = () => {
     // In a real implementation, this would use computer vision to detect
     // if the user completed the challenge (blinked, turned head, etc.)
-
+    console.log('Liveness: simulateChallengeCompletion', currentChallengeIndex);
     // 80% chance of success for demo purposes
     const success = Math.random() > 0.2
-
     if (success) {
       // Mark current challenge as completed
       setChallenges((prev) =>
         prev.map((challenge, idx) => (idx === currentChallengeIndex ? { ...challenge, completed: true } : challenge)),
       )
-
       // Move to next challenge or complete verification
       if (currentChallengeIndex < challenges.length - 1) {
         setCurrentChallengeIndex((prev) => prev + 1)
-
         // Short delay before starting next challenge
         setTimeout(() => {
           startCurrentChallenge()
@@ -180,25 +177,24 @@ export function LivenessDetection({
       }
     } else {
       // Challenge failed, retry
+      setError('Challenge failed, please try again.');
       startCurrentChallenge()
     }
   }
 
   const handleVerificationComplete = (success: boolean) => {
+    console.log('Liveness: handleVerificationComplete', success);
     setProcessing(true)
-
     // Clean up intervals
     if (faceCheckIntervalRef.current) {
       clearInterval(faceCheckIntervalRef.current)
     }
-
     // Stop the camera
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream
       const tracks = stream.getTracks()
       tracks.forEach((track) => track.stop())
     }
-
     // Simulate processing delay
     setTimeout(() => {
       setProcessing(false)

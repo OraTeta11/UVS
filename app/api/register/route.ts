@@ -1,32 +1,37 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
   try {
     const userData = await request.json();
-    const { studentId, firstName, lastName, email, department, gender, faceDescriptor } = userData;
+    const { studentId, name, email, department, gender, password } = userData;
 
-    // Basic validation (you'll want more robust validation)
-    if (!studentId || !firstName || !lastName || !email || !faceDescriptor) {
+    // Basic validation
+    if (!studentId || !name || !email || !department || !gender || !password) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
     }
+
+    // Split name into first and last (if possible)
+    const [firstName, ...rest] = name.trim().split(' ');
+    const lastName = rest.join(' ');
+
+    // Hash the password
+    const passwordHash = await bcrypt.hash(password, 10);
 
     // Set the default role to 'voter'
     const role = 'voter';
 
-    // Convert faceDescriptor back to a PostgreSQL array format if needed
-    // In this case, since we are inserting an array of REAL, the array from frontend should work directly
-
     // Insert user data into the database
     const result = await sql`
-      INSERT INTO users (student_id, first_name, last_name, email, department, gender, face_descriptor, role)
-      VALUES (${studentId}, ${firstName}, ${lastName}, ${email}, ${department}, ${gender}, ${faceDescriptor}, ${role})
+      INSERT INTO users (student_id, first_name, last_name, email, department, gender, password_hash, role)
+      VALUES (${studentId}, ${firstName}, ${lastName}, ${email}, ${department}, ${gender}, ${passwordHash}, ${role})
       ON CONFLICT (student_id) DO NOTHING
       RETURNING id;
     `;
 
-    if (result.count === 0) {
-      return NextResponse.json({ message: 'User with this student ID already exists' }, { status: 409 });
+    if (result.count === 0 || !result[0] || !result[0].id) {
+      return NextResponse.json({ message: 'User registration failed or user with this student ID already exists' }, { status: 409 });
     }
 
     return NextResponse.json({ message: 'User registered successfully', userId: result[0].id }, { status: 201 });

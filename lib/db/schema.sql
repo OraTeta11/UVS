@@ -64,6 +64,14 @@ CREATE TABLE IF NOT EXISTS votes (
     CONSTRAINT unique_vote UNIQUE (election_id, position_id, voter_id)
 );
 
+-- Password Reset Tokens
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL
+);
+
 -- Create indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_elections_status ON elections(status);
 CREATE INDEX IF NOT EXISTS idx_elections_dates ON elections(start_date, end_date);

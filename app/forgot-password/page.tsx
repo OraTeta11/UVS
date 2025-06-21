@@ -34,11 +34,19 @@ export default function ForgotPasswordPage() {
       setLoading(true);
       setError('');
       
-      // For now, just show success message
-      // In a real implementation, you would send a reset email
+      const response = await fetch('/api/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send reset email. Please try again.');
+      }
+
       setSuccess(true);
-    } catch (err) {
-      setError('Failed to send reset email. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to send reset email. Please try again.');
     } finally {
       setLoading(false);
     }

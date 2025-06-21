@@ -72,7 +72,6 @@ export default function FaceVerification({
         setSimilarity(sim)
         onVerificationSuccess()
         setError(null)
-        stopCamera()
       } else {
         setError('Face verification failed. Please try again.')
         onVerificationFailure()
@@ -83,6 +82,7 @@ export default function FaceVerification({
       console.error('Error in verifyFaceCapture:', err);
     } finally {
       setIsVerifying(false)
+      stopCamera()
     }
   }
 

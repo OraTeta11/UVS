@@ -91,16 +91,9 @@ export async function POST(req: Request) {
     return new Response(JSON.stringify({ verified }), { status: 200 });
   } catch (error) {
     console.error('Error in verify-face API:', error);
-    
-    // TEMPORARY DEBUGGING: Return the full error in the response
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-    const errorStack = error instanceof Error ? error.stack : 'No stack trace available.';
-
     return new Response(JSON.stringify({ 
-      error: "Internal server error (DEBUG MODE)", 
-      details: errorMessage,
-      stack: errorStack,
-      rawError: JSON.stringify(error, Object.getOwnPropertyNames(error)) // Send all properties of the error
+      error: "Internal server error", 
+      details: error instanceof Error ? error.message : 'Unknown error' 
     }), { status: 500 });
   }
 } 

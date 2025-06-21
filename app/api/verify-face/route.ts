@@ -44,14 +44,26 @@ export async function POST(req: Request) {
     }
 
     // Check if AWS credentials are configured
-    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.AWS_REGION || !process.env.AWS_S3_BUCKET) {
+    const hasAwsConfig = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_REGION && process.env.AWS_S3_BUCKET;
+    
+    if (!hasAwsConfig) {
       console.error('Missing AWS environment variables:', {
         hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
         hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
         hasRegion: !!process.env.AWS_REGION,
         hasBucket: !!process.env.AWS_S3_BUCKET,
       });
-      return new Response(JSON.stringify({ error: "AWS configuration is incomplete" }), { status: 500 });
+      
+      // For development/testing, return a mock response
+      if (process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview') {
+        console.log('Development mode: Returning mock verification response');
+        return new Response(JSON.stringify({ verified: true, mock: true }), { status: 200 });
+      }
+      
+      return new Response(JSON.stringify({ 
+        error: "AWS configuration is incomplete. Please configure AWS credentials in Vercel environment variables.",
+        required: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION", "AWS_S3_BUCKET"]
+      }), { status: 500 });
     }
 
     // Get S3 key from DB

@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 export async function POST(request: Request) {
   try {
     const userData = await request.json();
-    const { studentId, name, email, department, gender, password } = userData;
+    const { studentId, name, email, department, gender, password, faceImageS3Key } = userData;
 
     // Basic validation
     if (!studentId || !name || !email || !department || !gender || !password) {
@@ -24,8 +24,8 @@ export async function POST(request: Request) {
 
     // Insert user data into the database
     const result = await sql`
-      INSERT INTO users (student_id, first_name, last_name, email, department, gender, password_hash, role)
-      VALUES (${studentId}, ${firstName}, ${lastName}, ${email}, ${department}, ${gender}, ${passwordHash}, ${role})
+      INSERT INTO users (student_id, first_name, last_name, email, department, gender, password_hash, role, face_image_s3_key)
+      VALUES (${studentId}, ${firstName}, ${lastName}, ${email}, ${department}, ${gender}, ${passwordHash}, ${role}, ${faceImageS3Key})
       ON CONFLICT (student_id) DO NOTHING
       RETURNING id;
     `;

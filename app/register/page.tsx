@@ -22,6 +22,7 @@ export default function RegisterPage() {
     gender: "",
     password: "",
     confirmPassword: "",
+    faceImageS3Key: "",
   })
   const [faceRegistered, setFaceRegistered] = useState(false)
   const [registrationComplete, setRegistrationComplete] = useState(false)
@@ -60,14 +61,15 @@ export default function RegisterPage() {
     setStep(step - 1)
   }
 
-  const handleFaceRegistrationSuccess = () => {
+  const handleFaceRegistrationSuccess = (s3Key: string) => {
+    setFormData((prev) => ({ ...prev, faceImageS3Key: s3Key }))
     setFaceRegistered(true)
     setRegistrationError(null)
   }
 
-  const handleFaceRegistrationFailure = () => {
+  const handleFaceRegistrationFailure = (error: string) => {
     setFaceRegistered(false)
-    setRegistrationError("Face registration failed. Please try again.")
+    setRegistrationError(error || "Face registration failed. Please try again.")
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

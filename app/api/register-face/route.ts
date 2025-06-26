@@ -4,7 +4,9 @@ import { uploadToS3 } from "@/lib/services/s3";
 
 export async function POST(request: Request) {
   try {
-    const { studentId, imageData } = await request.json();
+    const formData = await request.formData();
+    const studentId = formData.get('studentId') as string;
+    const imageData = formData.get('imageData') as string;
     console.log(`[Register Face] Received request for studentId: ${studentId}`);
 
     if (!studentId || !imageData) {

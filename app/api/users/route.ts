@@ -43,27 +43,23 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const data = await request.json();
-    // Add user logic (simplified, add validation as needed)
-    const result = await sql`
-      C:\Users\Ora\Documen…didates\page.tsx:35 
- GET http://localhost:3000/api/elections/1/candidates 500 (Internal Server Error)
+    const formData = await request.formData();
+    const studentId = formData.get('studentId') as string;
+    const firstName = formData.get('firstName') as string;
+    const lastName = formData.get('lastName') as string;
+    const email = formData.get('email') as string;
+    const department = formData.get('department') as string;
+    const gender = formData.get('gender') as string;
+    const role = formData.get('role') as string;
+    const imageUrl = formData.get('imageUrl') as string;
 
-:3000/api/candidates/stream:1 
- GET http://localhost:3000/api/candidates/stream net::ERR_ABORTED 404 (Not Found)
-:3000/api/voters/stream:1 
- GET http://localhost:3000/api/voters/stream net::ERR_ABORTED 404 (Not Found)
-C:\Users\Ora\Documen…\services\api.ts:34 
- GET http://localhost:3000/api/elections/1/votes 500 (Internal Server Error)
-C:\Users\Ora\Documen…\services\api.ts:22 API Error Response: 500 
-{error: 'Failed to fetch votes'}
-C:\Users\Ora\Documen…\services\api.ts:34 
- GET http://localhost:3000/api/elections/1/votes 500 (Internal Server Error)
-C:\Users\Ora\Documen…\services\api.ts:22 API Error Response: 500 
-{error: 'Failed to fetch votes'}
-﻿
-INSERT INTO users (student_id, first_name, last_name, email, department, gender, role, created_at, updated_at, image_url)
-      VALUES (${data.studentId}, ${data.firstName}, ${data.lastName}, ${data.email}, ${data.department}, ${data.gender}, ${data.role}, NOW(), NOW(), ${data.imageUrl})
+    if (!studentId || !firstName || !lastName || !email || !department || !gender || !role) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    const result = await sql`
+      INSERT INTO users (student_id, first_name, last_name, email, department, gender, role, created_at, updated_at, image_url)
+      VALUES (${studentId}, ${firstName}, ${lastName}, ${email}, ${department}, ${gender}, ${role}, NOW(), NOW(), ${imageUrl})
       RETURNING *
     `;
     await notifyVoterClients();

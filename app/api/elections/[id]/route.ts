@@ -59,10 +59,17 @@ export async function POST(request: Request, context: { params: { id: string } }
       );
     }
 
-    const data = await request.json();
-    console.log('Vote submission payload:', data);
+    const formData = await request.formData();
+    const candidateId = formData.get('candidateId') as string;
+    const faceVerified = formData.get('faceVerified') as string;
+    
+    console.log('Vote submission payload:', { candidateId, faceVerified });
     console.log('User ID header:', request.headers.get('x-user-id'));
-    const validatedData = voteSchema.parse(data);
+    
+    const validatedData = {
+      candidateId: parseInt(candidateId),
+      faceVerified: faceVerified === 'true'
+    };
 
     // Get the user ID from the request headers (for now)
     const userId = request.headers.get('x-user-id');
@@ -109,8 +116,14 @@ export async function POST(request: Request, context: { params: { id: string } }
 export async function PUT(request: Request, context: { params: { id: string } }) {
   try {
     const params = await context.params;
-    const userData = await request.json();
-    const { title, description, startDate, endDate, status, department, isDepartmentSpecific } = userData;
+    const formData = await request.formData();
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const startDate = formData.get('startDate') as string;
+    const endDate = formData.get('endDate') as string;
+    const status = formData.get('status') as string;
+    const department = formData.get('department') as string;
+    const isDepartmentSpecific = formData.get('isDepartmentSpecific') as string;
 
     // Basic validation
     if (!title || !startDate || !endDate) {

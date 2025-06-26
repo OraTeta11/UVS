@@ -35,17 +35,15 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const body: Partial<Candidate> = await request.json();
-    const {
-      election_id = 1, // Defaulting election_id to 1 as it's not in the form
-      full_name,
-      position_id,
-      student_id,
-      department,
-      gender,
-      manifesto,
-      image_url
-    } = body;
+    const formData = await request.formData();
+    const election_id = formData.get('election_id') as string || '1'; // Defaulting election_id to 1 as it's not in the form
+    const full_name = formData.get('full_name') as string;
+    const position_id = formData.get('position_id') as string;
+    const student_id = formData.get('student_id') as string;
+    const department = formData.get('department') as string;
+    const gender = formData.get('gender') as string;
+    const manifesto = formData.get('manifesto') as string;
+    const image_url = formData.get('image_url') as string;
 
     if (!full_name || !position_id || !student_id || !department || !gender) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
@@ -53,7 +51,7 @@ export async function POST(request: Request) {
 
     const result = await sql`
       INSERT INTO candidates (election_id, full_name, position_id, student_id, department, gender, manifesto, image_url, verified)
-      VALUES (${election_id}, ${full_name}, ${position_id}, ${student_id}, ${department}, ${gender}, ${manifesto}, ${image_url}, false)
+      VALUES (${parseInt(election_id)}, ${full_name}, ${parseInt(position_id)}, ${student_id}, ${department}, ${gender}, ${manifesto}, ${image_url}, false)
       RETURNING *
     `;
 

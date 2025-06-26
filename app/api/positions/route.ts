@@ -30,8 +30,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { electionId, title, description = "", maxVotes = 1 } = body;
+    const formData = await request.formData();
+    const electionId = formData.get('electionId') as string;
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string || "";
+    const maxVotes = formData.get('maxVotes') as string || "1";
 
     if (!electionId || !title) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
@@ -39,7 +42,7 @@ export async function POST(request: Request) {
 
     const result = await sql`
       INSERT INTO positions (election_id, title, description, max_votes)
-      VALUES (${electionId}, ${title}, ${description}, ${maxVotes})
+      VALUES (${parseInt(electionId)}, ${title}, ${description}, ${parseInt(maxVotes)})
       RETURNING *
     `;
 

@@ -3,8 +3,14 @@ import { sql } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
-    const userData = await request.json();
-    const { studentId, name, email, department, gender, role, faceImageS3Key } = userData;
+    const formData = await request.formData();
+    const studentId = formData.get('studentId') as string;
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    const department = formData.get('department') as string;
+    const gender = formData.get('gender') as string;
+    const role = formData.get('role') as string;
+    const faceImageS3Key = formData.get('faceImageS3Key') as string;
 
     // Basic validation
     if (!studentId || !name || !email || !department || !gender || !role) {

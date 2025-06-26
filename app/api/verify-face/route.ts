@@ -41,7 +41,9 @@ function stripBase64Prefix(data: string): string {
 
 export async function POST(req: Request) {
   try {
-  const { studentId, imageData } = await req.json();
+    const formData = await req.formData();
+    const studentId = formData.get('studentId') as string;
+    const imageData = formData.get('imageData') as string;
 
     if (!studentId || !imageData) {
       return new Response(JSON.stringify({ error: "Missing required fields: studentId and imageData" }), { status: 400 });

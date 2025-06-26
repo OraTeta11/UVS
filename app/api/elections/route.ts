@@ -81,8 +81,12 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { title, description, startDate, endDate, createdBy } = body;
+    const formData = await request.formData();
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const startDate = formData.get('startDate') as string;
+    const endDate = formData.get('endDate') as string;
+    const createdBy = formData.get('createdBy') as string;
 
     if (!title || !startDate || !endDate || !createdBy) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });

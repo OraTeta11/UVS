@@ -11,8 +11,9 @@ const SPECIAL_ADMINS = [
 
 export async function POST(request: Request) {
   try {
-    const userData = await request.json();
-    const { studentId, email } = userData;
+    const formData = await request.formData();
+    const studentId = formData.get('studentId') as string;
+    const email = formData.get('email') as string;
 
     // Basic validation
     if (!studentId || !email) {

@@ -4,7 +4,7 @@ import { Vote } from '@/types';
 export const voteService = {
   getVotes: async (electionId: number): Promise<Vote[]> => {
     const response = await api.get<Vote[]>(`/elections/${electionId}/votes`);
-    return response.data || [];
+    return response || [];
   },
 
   submitVote: async (electionId: number, data: Omit<Vote, 'id' | 'createdAt' | 'position' | 'candidate' | 'user'>): Promise<Vote> => {

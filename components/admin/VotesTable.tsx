@@ -12,7 +12,7 @@ import {
 } from "@tanstack/react-table";
 import { Vote, User, Candidate, Position } from "@/types";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, Edit, ShieldCheck } from "lucide-react"
+import { CheckCircle2, XCircle, Edit, ShieldCheck, User as UserIcon } from "lucide-react"
 import Image from 'next/image';
 
 interface VotesTableProps {
@@ -29,49 +29,104 @@ export function VotesTable({ data, onViewVoter, onDelete, onEdit }: VotesTablePr
 
   const columns = React.useMemo<ColumnDef<Vote>[]>(
     () => [
-      { accessorKey: "id", header: "ID" },
-      { accessorKey: "student_id", header: "Student ID" },
-      { accessorKey: "candidate_id", header: "Candidate ID" },
-      { accessorKey: "position_id", header: "Position ID" },
+      { 
+        accessorKey: "id", 
+        header: "Vote ID",
+        size: 80
+      },
+      { 
+        accessorKey: "student_id", 
+        header: "Student ID",
+        size: 120
+      },
+      { 
+        accessorKey: "first_name", 
+        header: "First Name",
+        size: 120
+      },
+      { 
+        accessorKey: "last_name", 
+        header: "Last Name",
+        size: 120
+      },
+      { 
+        accessorKey: "department", 
+        header: "Department",
+        size: 100
+      },
+      { 
+        accessorKey: "candidate_name", 
+        header: "Voted For",
+        size: 150
+      },
+      { 
+        accessorKey: "position_title", 
+        header: "Position",
+        size: 150
+      },
       {
-        accessorKey: "faceVerified",
-        header: "Status",
+        accessorKey: "face_verified",
+        header: "Face Verified",
+        size: 100,
         cell: ({ row }) =>
-          row.original.faceVerified ? (
-            <CheckCircle2 className="text-green-600" />
+          row.original.face_verified ? (
+            <div className="flex items-center gap-1">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <span className="text-green-600 text-sm">Yes</span>
+            </div>
           ) : (
-            <XCircle className="text-red-600" />
+            <div className="flex items-center gap-1">
+              <XCircle className="h-4 w-4 text-red-600" />
+              <span className="text-red-600 text-sm">No</span>
+            </div>
           ),
+      },
+      {
+        accessorKey: "created_at",
+        header: "Vote Date",
+        size: 120,
+        cell: ({ row }) => {
+          const date = new Date(row.original.created_at);
+          return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
       },
       {
         id: "actions",
         header: "Actions",
+        size: 120,
         cell: ({ row }) => (
           <div className="flex gap-2">
+            {onViewVoter && (
+              <Button size="sm" variant="ghost" onClick={() => onViewVoter(row.original)}>
+                <UserIcon className="h-4 w-4 text-blue-600" />
+              </Button>
+            )}
             {onDelete && (
-              <Button size="icon" variant="ghost" onClick={() => onDelete(row.original)}>
-                <ShieldCheck className="text-red-600" />
+              <Button size="sm" variant="ghost" onClick={() => onDelete(row.original)}>
+                <ShieldCheck className="h-4 w-4 text-red-600" />
               </Button>
             )}
             {onEdit && (
-              <Button size="icon" variant="ghost" onClick={() => onEdit(row.original)}>
-                <Edit className="text-blue-600" />
+              <Button size="sm" variant="ghost" onClick={() => onEdit(row.original)}>
+                <Edit className="h-4 w-4 text-blue-600" />
               </Button>
             )}
           </div>
         ),
       },
     ],
-    [onDelete, onEdit]
+    [onDelete, onEdit, onViewVoter]
   );
 
   const table = useReactTable({
     data,
     columns,
     state: {
+      globalFilter,
       sorting,
       columnFilters,
     },
+    onGlobalFilterChange: setGlobalFilter,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
@@ -80,17 +135,29 @@ export function VotesTable({ data, onViewVoter, onDelete, onEdit }: VotesTablePr
     getPaginationRowModel: getPaginationRowModel(),
     initialState: {
       pagination: {
-        pageSize: 5,
+        pageSize: 10,
       },
     },
   });
 
   return (
-    <div className="space-y-2">
-      <div className="overflow-x-auto">
+    <div className="space-y-4">
+      <div className="flex items-center gap-4">
+        <input
+          className="border px-3 py-2 rounded-lg w-64"
+          placeholder="Search voters by name, student ID, or candidate..."
+          value={globalFilter ?? ""}
+          onChange={e => setGlobalFilter(e.target.value)}
+        />
+        <span className="text-sm text-gray-600">
+          {table.getFilteredRowModel().rows.length} of {data.length} votes
+        </span>
+      </div>
+      
+      <div className="overflow-x-auto border rounded-lg">
         <table
           className="min-w-full"
-          style={{ borderCollapse: 'collapse', background: 'white', border: '3px solid #003B71' }}
+          style={{ borderCollapse: 'collapse', background: 'white' }}
         >
           <thead>
             {table.getHeaderGroups().map(headerGroup => (
@@ -105,11 +172,19 @@ export function VotesTable({ data, onViewVoter, onDelete, onEdit }: VotesTablePr
                       padding: '12px 15px',
                       textAlign: 'left',
                       borderBottom: '2px solid #002a52',
+                      fontSize: '14px',
                     }}
+                    onClick={header.column.getToggleSortingHandler()}
+                    className="cursor-pointer select-none"
                   >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                    <div className="flex items-center gap-1">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.column.getIsSorted() ? (
+                        header.column.getIsSorted() === "asc" ? " ▲" : " ▼"
+                      ) : null}
+                    </div>
                   </th>
                 ))}
               </tr>
@@ -117,10 +192,26 @@ export function VotesTable({ data, onViewVoter, onDelete, onEdit }: VotesTablePr
           </thead>
           <tbody>
             {table.getRowModel().rows.length === 0 ? (
-              <tr><td colSpan={columns.length} style={{ textAlign: 'center', padding: '16px', border: '2px solid #003B71' }}>No votes found.</td></tr>
+              <tr>
+                <td 
+                  colSpan={columns.length} 
+                  style={{ 
+                    textAlign: 'center', 
+                    padding: '32px', 
+                    border: '1px solid #e2e8f0',
+                    color: '#6b7280'
+                  }}
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <UserIcon className="h-8 w-8 text-gray-400" />
+                    <p className="text-lg font-medium">No votes found</p>
+                    <p className="text-sm">No votes have been cast yet for this election.</p>
+                  </div>
+                </td>
+              </tr>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="hover:bg-gray-50">
+                <tr key={row.id} className="hover:bg-gray-50 transition-colors">
                   {row.getVisibleCells().map((cell) => (
                     <td
                       key={cell.id}
@@ -128,6 +219,7 @@ export function VotesTable({ data, onViewVoter, onDelete, onEdit }: VotesTablePr
                         padding: '12px 15px',
                         textAlign: 'left',
                         borderBottom: '1px solid #e2e8f0',
+                        fontSize: '14px',
                       }}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -139,33 +231,54 @@ export function VotesTable({ data, onViewVoter, onDelete, onEdit }: VotesTablePr
           </tbody>
         </table>
       </div>
-      <div className="flex items-center justify-between mt-2">
+      
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button size="sm" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()} style={{ background: '#003B71', color: 'white' }}>
+          <Button 
+            size="sm" 
+            onClick={() => table.setPageIndex(0)} 
+            disabled={!table.getCanPreviousPage()} 
+            style={{ background: '#003B71', color: 'white' }}
+          >
             First
           </Button>
-          <Button size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} style={{ background: '#003B71', color: 'white' }}>
+          <Button 
+            size="sm" 
+            onClick={() => table.previousPage()} 
+            disabled={!table.getCanPreviousPage()} 
+            style={{ background: '#003B71', color: 'white' }}
+          >
             Previous
           </Button>
-          <Button size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} style={{ background: '#003B71', color: 'white' }}>
+          <Button 
+            size="sm" 
+            onClick={() => table.nextPage()} 
+            disabled={!table.getCanNextPage()} 
+            style={{ background: '#003B71', color: 'white' }}
+          >
             Next
           </Button>
-          <Button size="sm" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()} style={{ background: '#003B71', color: 'white' }}>
+          <Button 
+            size="sm" 
+            onClick={() => table.setPageIndex(table.getPageCount() - 1)} 
+            disabled={!table.getCanNextPage()} 
+            style={{ background: '#003B71', color: 'white' }}
+          >
             Last
           </Button>
         </div>
-        <div className="flex items-center gap-2">
-        <span>
-          Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-        </span>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-600">
+            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+          </span>
           <select
             value={table.getState().pagination.pageSize}
             onChange={e => {
               table.setPageSize(Number(e.target.value))
             }}
-            className="p-1 border rounded"
+            className="p-2 border rounded-lg text-sm"
           >
-            {[10, 20, 30, 40, 50].map(pageSize => (
+            {[5, 10, 20, 50].map(pageSize => (
               <option key={pageSize} value={pageSize}>
                 Show {pageSize}
               </option>

@@ -4,149 +4,44 @@ import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { BadgeCheck, UserX, Download, Plus, Search } from "lucide-react"
+import { BadgeCheck, UserX, Download, Plus, Search, Users, VoteIcon, Calendar } from "lucide-react"
 import { VotesTable } from '@/components/admin/VotesTable'
 import { voteService } from '@/lib/services/votes'
 import { Vote, User } from '@/types'
-import { useReactTable, getCoreRowModel, getSortedRowModel, getFilteredRowModel, getPaginationRowModel, flexRender, ColumnDef } from '@tanstack/react-table'
 import { toast } from "sonner"
 import { AddVoterModal } from "@/components/admin/AddVoterModal"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 
-// Add a users service to fetch users from the backend
-async function fetchUsers(): Promise<User[]> {
-  const res = await fetch('/api/users');
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data as User[];
-}
-
-function VotersTable({ data }: { data: User[] }) {
-  const [globalFilter, setGlobalFilter] = useState("");
-  const [sorting, setSorting] = useState([]);
-  const [columnFilters, setColumnFilters] = useState([]);
-
-  const columns = React.useMemo<ColumnDef<User>[]>(
-    () => [
-      { accessorKey: "firstName", header: "First Name" },
-      { accessorKey: "lastName", header: "Last Name" },
-      { accessorKey: "studentId", header: "Student ID" },
-      { accessorKey: "department", header: "Faculty" },
-      { accessorKey: "gender", header: "Gender" },
-      { accessorKey: "role", header: "Role" },
-      {
-        id: "actions",
-        header: "Actions",
-        cell: ({ row }) => (
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">Verify</Button>
-            <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600">
-              <UserX className="h-4 w-4 mr-2" />Remove
-            </Button>
-          </div>
-        ),
-      },
-    ],
-    []
-  );
-
-  const table = useReactTable({
-    data,
-    columns,
-    state: { globalFilter, sorting, columnFilters },
-    onGlobalFilterChange: setGlobalFilter,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-  });
-
-  return (
-    <div className="space-y-2">
-      <input
-        className="border px-2 py-1 rounded w-full mb-2"
-        placeholder="Search voters..."
-        value={globalFilter ?? ""}
-        onChange={e => setGlobalFilter(e.target.value)}
-      />
-      <div className="overflow-x-auto">
-        <table className="min-w-full border">
-          <thead>
-            {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                  <th
-                    key={header.id}
-                    className="border px-4 py-2 cursor-pointer select-none"
-                    onClick={header.column.getToggleSortingHandler()}
-                  >
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                    {header.column.getIsSorted() ? (header.column.getIsSorted() === "asc" ? " ▲" : " ▼") : ""}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {table.getRowModel().rows.length === 0 ? (
-              <tr><td colSpan={columns.length} className="text-center py-4">No voters found.</td></tr>
-            ) : (
-              table.getRowModel().rows.map(row => (
-                <tr key={row.id}>
-                  {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} className="border px-4 py-2">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-      <div className="flex items-center justify-between mt-2">
-        <div>
-          <Button size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-            Previous
-          </Button>
-          <Button size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="ml-2">
-            Next
-          </Button>
-        </div>
-        <span>
-          Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-        </span>
-      </div>
-    </div>
-  );
-}
-
 export default function VotersPage() {
   const [votes, setVotes] = useState<Vote[]>([])
   const [loadingVotes, setLoadingVotes] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [showEditVoter, setShowEditVoter] = useState(false)
   const [editVoter, setEditVoter] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
     fetchVotes(); // initial fetch
-    const es = new EventSource('/api/voters/stream');
-    es.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      setVotes(data);
-    };
-    return () => es.close();
+    // Note: The stream endpoint doesn't exist yet, so we'll remove it for now
+    // const es = new EventSource('/api/voters/stream');
+    // es.onmessage = (event) => {
+    //   const data = JSON.parse(event.data);
+    //   setVotes(data);
+    // };
+    // return () => es.close();
   }, []);
 
   const fetchVotes = async () => {
     try {
       setLoadingVotes(true)
-      const votes = await voteService.getVotes(1)
+      setError(null)
+      const votes = await voteService.getVotes(1) // Currently hardcoded to election 1
+      console.log('Fetched votes:', votes)
       setVotes(votes)
     } catch (error) {
+      console.error('Error fetching votes:', error)
+      setError('Failed to fetch votes')
       toast.error("Failed to fetch votes")
     } finally {
       setLoadingVotes(false)
@@ -154,21 +49,30 @@ export default function VotersPage() {
   }
 
   const handleExportPDF = () => {
+    if (votes.length === 0) {
+      toast.error("No votes to export")
+      return
+    }
+
     const doc = new jsPDF()
     doc.text("Voters List", 14, 16)
     autoTable(doc, {
-      head: [["ID", "Student ID", "Candidate ID", "Position ID", "Status"]],
+      head: [["Vote ID", "Student ID", "Voter Name", "Department", "Voted For", "Position", "Face Verified", "Date"]],
       body: votes.map(vote => [
         vote.id,
-        vote.student_id,
-        vote.candidate_id,
-        vote.position_id,
-        vote.faceVerified ? "Verified" : "Not Verified",
+        vote.student_id || 'N/A',
+        `${vote.first_name || ''} ${vote.last_name || ''}`.trim() || 'N/A',
+        vote.department || 'N/A',
+        vote.candidate_name || 'N/A',
+        vote.position_title || 'N/A',
+        vote.face_verified ? "Yes" : "No",
+        new Date(vote.created_at).toLocaleDateString(),
       ]),
       startY: 22,
       styles: { fontSize: 9 },
     })
     doc.save("voters-list.pdf")
+    toast.success("PDF exported successfully")
   }
 
   const handleEdit = (vote) => {
@@ -177,44 +81,112 @@ export default function VotersPage() {
   }
 
   const handleDelete = async (vote) => {
-    if (!window.confirm(`Are you sure you want to delete voter: ${vote.student_id || vote.voter_id}?`)) return;
+    if (!window.confirm(`Are you sure you want to delete this vote?`)) return;
     try {
-      await fetch(`/api/users/${vote.voter_id || vote.student_id}`, {
+      await fetch(`/api/elections/1/votes?voteId=${vote.id}`, {
         method: 'DELETE',
       })
-      toast.success('Voter deleted successfully')
+      toast.success('Vote deleted successfully')
       fetchVotes()
     } catch (error) {
-      toast.error('Failed to delete voter')
+      toast.error('Failed to delete vote')
     }
   }
+
+  const handleViewVoter = (vote) => {
+    // For now, just show an alert with voter details
+    alert(`Voter Details:\nName: ${vote.first_name} ${vote.last_name}\nStudent ID: ${vote.student_id}\nDepartment: ${vote.department}\nVoted for: ${vote.candidate_name} (${vote.position_title})`)
+  }
+
+  // Calculate statistics
+  const totalVotes = votes.length
+  const verifiedVotes = votes.filter(vote => vote.face_verified).length
+  const uniqueVoters = new Set(votes.map(vote => vote.student_id)).size
 
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold">Voters Management</h2>
+        <h2 className="text-2xl font-bold text-[#003B71]">Voters Management</h2>
         <div className="flex items-center gap-4">
-          <Button onClick={handleExportPDF} variant="outline" style={{ borderColor: '#003B71', color: '#003B71' }}>
+          <Button 
+            onClick={handleExportPDF} 
+            variant="outline" 
+            style={{ borderColor: '#003B71', color: '#003B71' }}
+            disabled={votes.length === 0}
+          >
             <Download className="mr-2 h-4 w-4" /> Export PDF
           </Button>
         </div>
       </div>
 
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <div className="bg-blue-100 p-3 rounded-full">
+                <VoteIcon className="h-6 w-6 text-[#003B71]" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Total Votes</p>
+                <p className="text-2xl font-bold">{totalVotes}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <div className="bg-green-100 p-3 rounded-full">
+                <BadgeCheck className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Face Verified</p>
+                <p className="text-2xl font-bold">{verifiedVotes}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <div className="bg-orange-100 p-3 rounded-full">
+                <Users className="h-6 w-6 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Unique Voters</p>
+                <p className="text-2xl font-bold">{uniqueVoters}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardContent className="p-6">
           {loadingVotes ? (
-            <div>Loading votes...</div>
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#003B71] mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading votes...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <p className="text-red-600 mb-2">Failed to load votes</p>
+                <p className="text-sm text-gray-500 mb-4">{error}</p>
+                <Button onClick={fetchVotes} style={{ background: '#003B71', color: 'white' }}>
+                  Try Again
+                </Button>
+              </div>
+            </div>
           ) : (
             <VotesTable 
-              data={votes.filter(vote => {
-                // Filter by student_id or candidate_id or position_id
-                const q = searchQuery.toLowerCase();
-                return (
-                  (vote.student_id && vote.student_id.toLowerCase().includes(q)) ||
-                  (vote.candidate_id && String(vote.candidate_id).toLowerCase().includes(q)) ||
-                  (vote.position_id && String(vote.position_id).toLowerCase().includes(q))
-                );
-              })}
+              data={votes}
+              onViewVoter={handleViewVoter}
               onEdit={handleEdit}
               onDelete={handleDelete}
             />
@@ -223,7 +195,7 @@ export default function VotersPage() {
       </Card>
 
       {editVoter && (
-      <AddVoterModal
+        <AddVoterModal
           isOpen={showEditVoter}
           onClose={() => { setShowEditVoter(false); setEditVoter(null); }}
           onAdd={async (data) => {
@@ -240,8 +212,9 @@ export default function VotersPage() {
             }
           }}
           initialValues={editVoter}
-      />
+        />
       )}
     </div>
   )
+} 
 } 

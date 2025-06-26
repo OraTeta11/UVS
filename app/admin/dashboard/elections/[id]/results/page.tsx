@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,17 @@ import jsPDF from 'jspdf';
 
 interface Candidate {
   id: number;
-  name: string;
-  position: string;
-  votes: number;
-  percentage: number;
+  full_name: string;
+  position_title: string;
+  votes?: number;
+  percentage?: number;
+}
+
+interface Position {
+  id: number;
+  title: string;
+  description?: string;
+  candidates: Candidate[];
 }
 
 interface ElectionResult {
@@ -24,27 +31,37 @@ interface ElectionResult {
   startDate: string;
   endDate: string;
   status: string;
-  totalVotes: number;
-  eligibleVoters: number;
-  positions: string[];
-  candidates: Candidate[];
+  totalVotes?: number;
+  eligibleVoters?: number;
+  positions: Position[];
 }
 
 export default function ElectionResultsPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id;
   const [results, setResults] = useState<ElectionResult | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchElectionResults() {
-      setLoading(true);
-      const res = await fetch(`/api/elections/${id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setResults(data);
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`/api/elections/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setResults(data);
+        } else {
+          setError('Failed to fetch election results');
+        }
+      } catch (err) {
+        setError('Failed to fetch election results');
+        console.error('Error fetching election results:', err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     if (id) fetchElectionResults();
   }, [id]);
@@ -59,35 +76,58 @@ export default function ElectionResultsPage() {
     doc.setFontSize(12);
     doc.text(`Description: ${results.description || ''}`, 14, 26);
     doc.text(`Period: ${new Date(results.startDate).toLocaleDateString()} - ${new Date(results.endDate).toLocaleDateString()}`, 14, 34);
-    doc.text(`Total Voters: ${results.eligibleVoters}`, 14, 42);
-    doc.text(`Votes Cast: ${results.totalVotes}`, 14, 50);
+    doc.text(`Total Voters: ${results.eligibleVoters || 'N/A'}`, 14, 42);
+    doc.text(`Votes Cast: ${results.totalVotes || 'N/A'}`, 14, 50);
 
     let y = 60;
-    results.positions.forEach((position) => {
+    results.positions?.forEach((position) => {
       doc.setFontSize(14);
-      doc.text(`Position: ${position}`, 14, y);
+      doc.text(`Position: ${position.title}`, 14, y);
       y += 8;
       doc.setFontSize(12);
-      results.candidates
-        .filter((c) => c.position === position)
-        .forEach((candidate) => {
-          doc.text(
-            `${candidate.name}: ${candidate.votes} votes (${candidate.percentage.toFixed(1)}%)`,
-            18,
-            y
-          );
-          y += 7;
-        });
+      position.candidates?.forEach((candidate) => {
+        doc.text(
+          `${candidate.full_name}: ${candidate.votes || 0} votes (${candidate.percentage?.toFixed(1) || 0}%)`,
+          18,
+          y
+        );
+        y += 7;
+      });
       y += 4;
     });
 
     doc.save(`${results.title.replace(/\s+/g, '_')}_results.pdf`);
   };
 
-  if (loading) return <div className="p-8">Loading...</div>;
-  if (!results) return <div className="p-8">No results found.</div>;
+  if (loading) {
+    return (
+      <div className="p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#003B71] mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading election results...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const participationRate = (results.totalVotes / results.eligibleVoters) * 100;
+  if (error || !results) {
+    return (
+      <div className="p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <p className="text-red-600 mb-2">Failed to load election results</p>
+            <p className="text-sm text-gray-500">{error || 'No results found'}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const participationRate = results.totalVotes && results.eligibleVoters 
+    ? (results.totalVotes / results.eligibleVoters) * 100 
+    : 0;
 
   return (
     <div className="p-8">
@@ -124,7 +164,7 @@ export default function ElectionResultsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Total Voters</p>
-                  <p className="text-xl font-bold">{results.eligibleVoters}</p>
+                  <p className="text-xl font-bold">{results.eligibleVoters || 'N/A'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
@@ -133,7 +173,7 @@ export default function ElectionResultsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Votes Cast</p>
-                  <p className="text-xl font-bold">{results.totalVotes}</p>
+                  <p className="text-xl font-bold">{results.totalVotes || 'N/A'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
@@ -173,30 +213,45 @@ export default function ElectionResultsPage() {
           </CardContent>
         </Card>
 
-        {results.positions.map((position) => (
-          <Card key={position}>
+        {results.positions?.map((position) => (
+          <Card key={position.id}>
             <CardHeader>
-              <CardTitle>{position}</CardTitle>
+              <CardTitle>{position.title}</CardTitle>
+              {position.description && (
+                <CardDescription>{position.description}</CardDescription>
+              )}
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {results.candidates
-                  .filter((candidate) => candidate.position === position)
-                  .map((candidate) => (
+                {position.candidates && position.candidates.length > 0 ? (
+                  position.candidates.map((candidate) => (
                     <div key={candidate.id} className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="font-medium">{candidate.name}</span>
+                        <span className="font-medium">{candidate.full_name}</span>
                         <span className="text-sm text-gray-600">
-                          {candidate.votes} votes ({candidate.percentage.toFixed(1)}%)
+                          {candidate.votes || 0} votes ({candidate.percentage?.toFixed(1) || 0}%)
                         </span>
                       </div>
-                      <Progress value={candidate.percentage} className="h-2" />
+                      <Progress value={candidate.percentage || 0} className="h-2" />
                     </div>
-                  ))}
+                  ))
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    No candidates found for this position
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         ))}
+
+        {(!results.positions || results.positions.length === 0) && (
+          <Card>
+            <CardContent className="text-center py-8">
+              <p className="text-gray-500">No positions found for this election</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

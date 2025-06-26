@@ -4,49 +4,47 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User } from "@/types";
+import { Vote } from "@/types";
 
 interface AddVoterModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (newUser: Partial<User>) => void;
-  initialValues?: Partial<User>;
+  onAdd: (updatedVote: Partial<Vote>) => void;
+  initialValues?: any; // Vote data from the table
 }
 
 export function AddVoterModal({ isOpen, onClose, onAdd, initialValues }: AddVoterModalProps) {
-  const [firstName, setFirstName] = useState(initialValues?.firstName || "");
-  const [lastName, setLastName] = useState(initialValues?.lastName || "");
-  const [email, setEmail] = useState(initialValues?.email || "");
-  const [studentId, setStudentId] = useState(initialValues?.studentId || "");
+  const [firstName, setFirstName] = useState(initialValues?.first_name || "");
+  const [lastName, setLastName] = useState(initialValues?.last_name || "");
+  const [studentId, setStudentId] = useState(initialValues?.student_id || "");
   const [department, setDepartment] = useState(initialValues?.department || "");
-  const [imageUrl, setImageUrl] = useState(initialValues?.imageUrl || "");
+  const [candidateName, setCandidateName] = useState(initialValues?.candidate_name || "");
+  const [positionTitle, setPositionTitle] = useState(initialValues?.position_title || "");
 
   useEffect(() => {
-    setFirstName(initialValues?.firstName || "");
-    setLastName(initialValues?.lastName || "");
-    setEmail(initialValues?.email || "");
-    setStudentId(initialValues?.studentId || "");
+    setFirstName(initialValues?.first_name || "");
+    setLastName(initialValues?.last_name || "");
+    setStudentId(initialValues?.student_id || "");
     setDepartment(initialValues?.department || "");
-    setImageUrl(initialValues?.imageUrl || "");
+    setCandidateName(initialValues?.candidate_name || "");
+    setPositionTitle(initialValues?.position_title || "");
   }, [initialValues, isOpen]);
 
   const handleSubmit = () => {
-    if (!firstName || !lastName || !email || !studentId || !department) {
+    if (!firstName || !lastName || !studentId || !department) {
       alert("Please fill in all required fields.");
       return;
     }
 
-    const newUser: Partial<User> = {
-      firstName,
-      lastName,
-      email,
-      studentId,
+    const updatedVote = {
+      first_name: firstName,
+      last_name: lastName,
+      student_id: studentId,
       department,
-      imageUrl: imageUrl || undefined, // Allow empty string to be undefined
-      role: "Student", // Default role
-      verified: false, // Default verification status
+      candidate_name: candidateName,
+      position_title: positionTitle,
     };
-    onAdd(newUser);
+    onAdd(updatedVote);
     onClose();
   };
 
@@ -56,7 +54,7 @@ export function AddVoterModal({ isOpen, onClose, onAdd, initialValues }: AddVote
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Voter</DialogTitle>
+          <DialogTitle>Edit Vote Information</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
@@ -68,16 +66,12 @@ export function AddVoterModal({ isOpen, onClose, onAdd, initialValues }: AddVote
             <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="email" className="text-right">Email</Label>
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="col-span-3" />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="studentId" className="text-right">Student ID</Label>
             <Input id="studentId" value={studentId} onChange={(e) => setStudentId(e.target.value)} className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="department" className="text-right">Department</Label>
-            <Select onValueChange={(value: User['department']) => setDepartment(value)} value={department}>
+            <Select onValueChange={(value) => setDepartment(value)} value={department}>
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select Department" />
               </SelectTrigger>
@@ -89,13 +83,17 @@ export function AddVoterModal({ isOpen, onClose, onAdd, initialValues }: AddVote
             </Select>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="imageUrl" className="text-right">Image URL</Label>
-            <Input id="imageUrl" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="col-span-3" placeholder="Optional" />
+            <Label htmlFor="candidateName" className="text-right">Voted For</Label>
+            <Input id="candidateName" value={candidateName} onChange={(e) => setCandidateName(e.target.value)} className="col-span-3" readOnly />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="positionTitle" className="text-right">Position</Label>
+            <Input id="positionTitle" value={positionTitle} onChange={(e) => setPositionTitle(e.target.value)} className="col-span-3" readOnly />
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button type="submit" onClick={handleSubmit} style={{ background: '#003B71', color: 'white' }}>Add Voter</Button>
+          <Button type="submit" onClick={handleSubmit} style={{ background: '#003B71', color: 'white' }}>Update Vote</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

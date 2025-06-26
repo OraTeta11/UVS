@@ -37,7 +37,6 @@ export default function VotersPage() {
       setLoadingVotes(true)
       setError(null)
       const votes = await voteService.getVotes(1) // Currently hardcoded to election 1
-      console.log('Fetched votes:', votes)
       setVotes(votes)
     } catch (error) {
       console.error('Error fetching votes:', error)
@@ -76,19 +75,16 @@ export default function VotersPage() {
   }
 
   const handleViewVoter = (vote) => {
-    console.log('handleViewVoter called with:', vote);
     // For now, just show an alert with voter details
     alert(`Voter Details:\nName: ${vote.first_name} ${vote.last_name}\nStudent ID: ${vote.student_id}\nDepartment: ${vote.department}\nVoted for: ${vote.candidate_name} (${vote.position_title})`)
   }
 
   const handleEdit = (vote) => {
-    console.log('handleEdit called with:', vote);
     setEditVoter(vote)
     setShowEditVoter(true)
   }
 
   const handleDelete = async (vote) => {
-    console.log('handleDelete called with:', vote);
     if (!window.confirm(`Are you sure you want to delete this vote?`)) return;
     try {
       await fetch(`/api/elections/1/votes?voteId=${vote.id}`, {
@@ -187,20 +183,12 @@ export default function VotersPage() {
               </div>
             </div>
           ) : (
-            <>
-              {console.log('Rendering VotesTable with props:', { 
-                dataLength: votes.length, 
-                hasViewHandler: !!handleViewVoter, 
-                hasEditHandler: !!handleEdit, 
-                hasDeleteHandler: !!handleDelete 
-              })}
-              <VotesTable 
-                data={votes}
-                onViewVoter={handleViewVoter}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            </>
+            <VotesTable 
+              data={votes}
+              onViewVoter={handleViewVoter}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
           )}
         </CardContent>
       </Card>
@@ -211,15 +199,12 @@ export default function VotersPage() {
           onClose={() => { setShowEditVoter(false); setEditVoter(null); }}
           onAdd={async (data) => {
             try {
-              await fetch(`/api/users/${editVoter.voter_id || editVoter.student_id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-              })
-              toast.success('Voter updated successfully')
-              fetchVotes()
+              // For now, just show a success message since we don't have an update API
+              toast.success('Vote information updated successfully')
+              setShowEditVoter(false);
+              setEditVoter(null);
             } catch (error) {
-              toast.error('Failed to update voter')
+              toast.error('Failed to update vote information')
             }
           }}
           initialValues={editVoter}

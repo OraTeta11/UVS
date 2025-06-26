@@ -100,42 +100,33 @@ export function VotesTable({ data, onViewVoter, onDelete, onEdit }: VotesTablePr
               <Button 
                 size="sm" 
                 variant="outline"
-                onClick={() => {
-                  console.log('View voter clicked:', row.original);
-                  onViewVoter(row.original);
-                }}
+                onClick={() => onViewVoter(row.original)}
                 className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                title="View Voter Details"
               >
-                <UserIcon className="h-4 w-4 mr-1" />
-                View
+                <UserIcon className="h-4 w-4" />
               </Button>
             )}
             {onDelete && (
               <Button 
                 size="sm" 
                 variant="outline"
-                onClick={() => {
-                  console.log('Delete vote clicked:', row.original);
-                  onDelete(row.original);
-                }}
+                onClick={() => onDelete(row.original)}
                 className="border-red-500 text-red-600 hover:bg-red-50"
+                title="Delete Vote"
               >
-                <ShieldCheck className="h-4 w-4 mr-1" />
-                Delete
+                <ShieldCheck className="h-4 w-4" />
               </Button>
             )}
             {onEdit && (
               <Button 
                 size="sm" 
                 variant="outline"
-                onClick={() => {
-                  console.log('Edit vote clicked:', row.original);
-                  onEdit(row.original);
-                }}
+                onClick={() => onEdit(row.original)}
                 className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                title="Edit Vote"
               >
-                <Edit className="h-4 w-4 mr-1" />
-                Edit
+                <Edit className="h-4 w-4" />
               </Button>
             )}
           </div>

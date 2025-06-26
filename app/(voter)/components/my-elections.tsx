@@ -18,61 +18,8 @@ import {
   AlertCircle,
 } from "lucide-react"
 import Link from "next/link"
-
-const myElections = {
-  active: [
-    {
-      id: 1,
-      title: "Student Guild Elections 2025",
-      description: "Vote for your student representatives for the 2025-2026 academic year",
-      startDate: "May 10, 2025",
-      endDate: "May 15, 2025",
-      status: "active",
-      totalVotes: 520,
-      eligibleVoters: 1200,
-      positions: ["President", "Vice President", "Secretary", "Treasurer"],
-      hasVoted: false,
-      timeLeft: "3 days left",
-    },
-  ],
-  upcoming: [
-    {
-      id: 3,
-      title: "Department Head Selection",
-      description: "Vote for the new department head of Computer Science",
-      startDate: "May 20, 2025",
-      endDate: "May 25, 2025",
-      status: "upcoming",
-      totalVotes: 0,
-      eligibleVoters: 120,
-      positions: ["Department Head"],
-      timeUntilStart: "5 days until start",
-    },
-  ],
-  past: [
-    {
-      id: 4,
-      title: "Student Council Elections 2024",
-      description: "Vote for your student representatives for the 2024-2025 academic year",
-      startDate: "May 10, 2024",
-      endDate: "May 15, 2024",
-      status: "completed",
-      totalVotes: 980,
-      eligibleVoters: 1150,
-      positions: ["President", "Vice President", "Secretary", "Treasurer"],
-      hasVoted: true,
-      results: {
-        winner: "John Doe",
-        position: "President",
-        votes: 1245,
-      },
-      yourVote: {
-        position: "President",
-        candidate: "John Doe",
-      },
-    },
-  ],
-}
+import { useAuth } from "@/lib/hooks/useAuth"
+import { useElections } from "@/lib/hooks/useElections"
 
 function ElectionCard({ election }: { election: any }) {
   const participationRate = (election.totalVotes / election.eligibleVoters) * 100 || 0
@@ -107,7 +54,7 @@ function ElectionCard({ election }: { election: any }) {
           </div>
           <div className="flex items-center text-sm">
             <Users className="mr-2 h-4 w-4 text-gray-500" />
-            <span>Positions: {election.positions.join(", ")}</span>
+            <span>Positions: {election.positions?.join(", ") || "No positions"}</span>
           </div>
 
           {election.status === "active" && (
@@ -124,7 +71,7 @@ function ElectionCard({ election }: { election: any }) {
                 <div className="space-y-2">
                   <div className="flex items-center text-orange-600 text-sm">
                     <AlertCircle className="mr-2 h-4 w-4" />
-                    <span>{election.timeLeft}</span>
+                    <span>{election.timeLeft || "Voting open"}</span>
                   </div>
                   <Button asChild className="w-full bg-[#003B71] hover:bg-[#002a52]">
                     <Link href={`/vote/${election.id}`}>
@@ -150,7 +97,7 @@ function ElectionCard({ election }: { election: any }) {
             <div className="space-y-2">
               <div className="flex items-center text-orange-600 text-sm">
                 <CalendarDays className="mr-2 h-4 w-4" />
-                <span>{election.timeUntilStart}</span>
+                <span>{election.timeUntilStart || "Coming soon"}</span>
               </div>
               <Button variant="outline" className="w-full">
                 View Candidates
@@ -163,10 +110,10 @@ function ElectionCard({ election }: { election: any }) {
               <div className="bg-gray-50 p-4 rounded-lg space-y-2">
                 <p className="font-medium text-[#003B71] mb-1">Your Vote</p>
                 <p className="text-sm">
-                  Position: {election.yourVote.position}
+                  Position: {election.yourVote?.position || "N/A"}
                 </p>
                 <p className="text-sm">
-                  Candidate: {election.yourVote.candidate}
+                  Candidate: {election.yourVote?.candidate || "N/A"}
                 </p>
                 <div className="border-t border-gray-200 my-2"></div>
                 <p className="font-medium text-[#003B71] mb-1">Election Results</p>
@@ -189,23 +136,55 @@ function ElectionCard({ election }: { election: any }) {
 export default function MyElections() {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("active")
+  const { user } = useAuth()
+  const { elections, loading, error } = useElections(user?.id || '')
+
+  // Group elections by status
+  const groupedElections = {
+    active: elections.filter(election => election.status === 'active'),
+    upcoming: elections.filter(election => election.status === 'upcoming'),
+    past: elections.filter(election => election.status === 'completed'),
+  }
 
   const filteredElections = {
-    active: myElections.active.filter(
+    active: groupedElections.active.filter(
       (election) =>
         election.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         election.description.toLowerCase().includes(searchQuery.toLowerCase())
     ),
-    upcoming: myElections.upcoming.filter(
+    upcoming: groupedElections.upcoming.filter(
       (election) =>
         election.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         election.description.toLowerCase().includes(searchQuery.toLowerCase())
     ),
-    past: myElections.past.filter(
+    past: groupedElections.past.filter(
       (election) =>
         election.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         election.description.toLowerCase().includes(searchQuery.toLowerCase())
     ),
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#003B71] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your elections...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
+          <p className="text-red-600">Failed to load elections</p>
+          <p className="text-sm text-gray-500 mt-2">{error}</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -232,7 +211,7 @@ export default function MyElections() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Active Elections</p>
-                <p className="text-2xl font-bold">{myElections.active.length}</p>
+                <p className="text-2xl font-bold">{groupedElections.active.length}</p>
               </div>
             </div>
           </CardContent>
@@ -246,7 +225,7 @@ export default function MyElections() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Upcoming Elections</p>
-                <p className="text-2xl font-bold">{myElections.upcoming.length}</p>
+                <p className="text-2xl font-bold">{groupedElections.upcoming.length}</p>
               </div>
             </div>
           </CardContent>
@@ -260,7 +239,7 @@ export default function MyElections() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Completed Elections</p>
-                <p className="text-2xl font-bold">{myElections.past.length}</p>
+                <p className="text-2xl font-bold">{groupedElections.past.length}</p>
               </div>
             </div>
           </CardContent>
@@ -276,25 +255,43 @@ export default function MyElections() {
 
         <TabsContent value="active">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredElections.active.map((election) => (
-              <ElectionCard key={election.id} election={election} />
-            ))}
+            {filteredElections.active.length > 0 ? (
+              filteredElections.active.map((election) => (
+                <ElectionCard key={election.id} election={election} />
+              ))
+            ) : (
+              <div className="col-span-2 text-center py-8 text-gray-500">
+                No active elections found
+              </div>
+            )}
           </div>
         </TabsContent>
 
         <TabsContent value="upcoming">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredElections.upcoming.map((election) => (
-              <ElectionCard key={election.id} election={election} />
-            ))}
+            {filteredElections.upcoming.length > 0 ? (
+              filteredElections.upcoming.map((election) => (
+                <ElectionCard key={election.id} election={election} />
+              ))
+            ) : (
+              <div className="col-span-2 text-center py-8 text-gray-500">
+                No upcoming elections found
+              </div>
+            )}
           </div>
         </TabsContent>
 
         <TabsContent value="past">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredElections.past.map((election) => (
-              <ElectionCard key={election.id} election={election} />
-            ))}
+            {filteredElections.past.length > 0 ? (
+              filteredElections.past.map((election) => (
+                <ElectionCard key={election.id} election={election} />
+              ))
+            ) : (
+              <div className="col-span-2 text-center py-8 text-gray-500">
+                No past elections found
+              </div>
+            )}
           </div>
         </TabsContent>
       </Tabs>

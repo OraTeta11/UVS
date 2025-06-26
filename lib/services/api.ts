@@ -16,7 +16,7 @@ export interface ApiError {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
   (typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
     ? `${window.location.origin}/api` 
-    : 'http://localhost:3000/api');
+    : 'http://localhost:3001/api');
 
 // Helper function to handle API responses
 async function handleResponse<T>(response: Response): Promise<T> {

@@ -75,12 +75,20 @@ export default function VotersPage() {
     toast.success("PDF exported successfully")
   }
 
+  const handleViewVoter = (vote) => {
+    console.log('handleViewVoter called with:', vote);
+    // For now, just show an alert with voter details
+    alert(`Voter Details:\nName: ${vote.first_name} ${vote.last_name}\nStudent ID: ${vote.student_id}\nDepartment: ${vote.department}\nVoted for: ${vote.candidate_name} (${vote.position_title})`)
+  }
+
   const handleEdit = (vote) => {
+    console.log('handleEdit called with:', vote);
     setEditVoter(vote)
     setShowEditVoter(true)
   }
 
   const handleDelete = async (vote) => {
+    console.log('handleDelete called with:', vote);
     if (!window.confirm(`Are you sure you want to delete this vote?`)) return;
     try {
       await fetch(`/api/elections/1/votes?voteId=${vote.id}`, {
@@ -91,11 +99,6 @@ export default function VotersPage() {
     } catch (error) {
       toast.error('Failed to delete vote')
     }
-  }
-
-  const handleViewVoter = (vote) => {
-    // For now, just show an alert with voter details
-    alert(`Voter Details:\nName: ${vote.first_name} ${vote.last_name}\nStudent ID: ${vote.student_id}\nDepartment: ${vote.department}\nVoted for: ${vote.candidate_name} (${vote.position_title})`)
   }
 
   // Calculate statistics
@@ -184,12 +187,20 @@ export default function VotersPage() {
               </div>
             </div>
           ) : (
-            <VotesTable 
-              data={votes}
-              onViewVoter={handleViewVoter}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
+            <>
+              {console.log('Rendering VotesTable with props:', { 
+                dataLength: votes.length, 
+                hasViewHandler: !!handleViewVoter, 
+                hasEditHandler: !!handleEdit, 
+                hasDeleteHandler: !!handleDelete 
+              })}
+              <VotesTable 
+                data={votes}
+                onViewVoter={handleViewVoter}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            </>
           )}
         </CardContent>
       </Card>

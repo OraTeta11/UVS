@@ -97,18 +97,45 @@ export function VotesTable({ data, onViewVoter, onDelete, onEdit }: VotesTablePr
         cell: ({ row }) => (
           <div className="flex gap-2">
             {onViewVoter && (
-              <Button size="sm" variant="ghost" onClick={() => onViewVoter(row.original)}>
-                <UserIcon className="h-4 w-4 text-blue-600" />
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => {
+                  console.log('View voter clicked:', row.original);
+                  onViewVoter(row.original);
+                }}
+                className="border-blue-500 text-blue-600 hover:bg-blue-50"
+              >
+                <UserIcon className="h-4 w-4 mr-1" />
+                View
               </Button>
             )}
             {onDelete && (
-              <Button size="sm" variant="ghost" onClick={() => onDelete(row.original)}>
-                <ShieldCheck className="h-4 w-4 text-red-600" />
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => {
+                  console.log('Delete vote clicked:', row.original);
+                  onDelete(row.original);
+                }}
+                className="border-red-500 text-red-600 hover:bg-red-50"
+              >
+                <ShieldCheck className="h-4 w-4 mr-1" />
+                Delete
               </Button>
             )}
             {onEdit && (
-              <Button size="sm" variant="ghost" onClick={() => onEdit(row.original)}>
-                <Edit className="h-4 w-4 text-blue-600" />
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => {
+                  console.log('Edit vote clicked:', row.original);
+                  onEdit(row.original);
+                }}
+                className="border-blue-500 text-blue-600 hover:bg-blue-50"
+              >
+                <Edit className="h-4 w-4 mr-1" />
+                Edit
               </Button>
             )}
           </div>

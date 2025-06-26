@@ -13,7 +13,10 @@ export interface ApiError {
 }
 
 // Base API configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
+  (typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+    ? `${window.location.origin}/api` 
+    : 'http://localhost:3000/api');
 
 // Helper function to handle API responses
 async function handleResponse<T>(response: Response): Promise<T> {

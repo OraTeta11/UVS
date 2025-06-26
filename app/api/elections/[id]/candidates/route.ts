@@ -118,13 +118,4 @@ export async function POST(
     console.error('Error adding candidate:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
-}
-
-export async function GET(request: Request) {
-  console.log('[API] /api/elections/candidates GET (catch-all)', {
-    url: request.url,
-    method: request.method,
-    headers: Object.fromEntries(request.headers.entries()),
-  });
-  return NextResponse.json({ error: 'This endpoint should not be called' }, { status: 400 });
 } 
